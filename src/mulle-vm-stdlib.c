@@ -39,6 +39,7 @@
 #include "mulle-memchr.h"
 #include "mulle-memmatch.h"
 #include "mulle-memspn.h"
+#include "mulle-vm-page.h"
 #include "mulle-vm.h"
 #include <errno.h>
 

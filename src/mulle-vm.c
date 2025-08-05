@@ -9,13 +9,24 @@
 #include "mulle-vm-page.h"
 
 
+#ifdef DEBUG
+# define DEBUG_VERBOSE                 1
+#endif
+#define MULLE_VM_SHRINK_OSPAGE_USAGE   1
+
+
 uint32_t   mulle_vm_get_version( void)
 {
    return( MULLE__VM_VERSION);
 }
 
 
-struct mulle_vm_config     mulle_vm_config_default;
+struct mulle_vm_config     mulle_vm_config_default =
+{
+   .alloc_pages = mulle_mmap_alloc_pages,
+   .free_pages  = mulle_mmap_free_pages,
+   .skew        = MULLE__VM_SKEW_DEFAULT
+};
 
 // we don't really care to leak check this, so use &mulle_allocator_stlib
 MULLE_C_CONSTRUCTOR( load)
@@ -85,8 +96,8 @@ void   mulle_vm_init( struct mulle_vm *vm,
 
    vm->config = *config;
    // AI documented it like this, LOL
-   vm->config->alloc_pages = vm->config->alloc_pages ? vm->config->alloc_pages : mulle_mmap_alloc_pages;
-   vm->config->free_pages  = vm->config->free_pages  ? vm->config->free_pages  : mulle_mmap_free_pages;
+   vm->config.alloc_pages = vm->config.alloc_pages ? vm->config.alloc_pages : mulle_mmap_alloc_pages;
+   vm->config.free_pages  = vm->config.free_pages  ? vm->config.free_pages  : mulle_mmap_free_pages;
 }
 
 
@@ -124,10 +135,47 @@ void   mulle_vm_reset( struct mulle_vm *vm)
 
 static inline void   mulle_vm_assert( struct mulle_vm *vm)
 {
+#if DEBUG_VERBOSE || ! defined( NDEBUG)
+   uintptr_t              vm_address;
+   struct mulle_vm_page   *page;
+   unsigned               i;
+#endif
+
+#ifndef NDEBUG
+   uintptr_t    expect;
+#endif
    if( ! vm)
       return;
 
-   // nothing yet
+#ifndef NDEBUG
+   expect = 0;
+#endif
+#if DEBUG_VERBOSE || ! defined( NDEBUG)
+   i = 0;
+   mulle_vm_mapping_for( vm, info)
+   {
+      page       = info->page;
+      vm_address = info->address;
+      ++i;
+
+      // output vm range, size of pages, and hole in front and back
+#ifdef DEBUG_VERBOSE
+      fprintf( stderr, "%3u: %2td-%-2td \"%.*s\"\n",
+                               i,
+                               vm_address,
+                               vm_address + page->used.length,
+                               (int) page->used.length,
+                               (char *) mulle_vm_page_address( page, 0));
+#endif
+#ifndef NDEBUG
+      assert( info->address == expect);
+      expect += info->page->used.length;
+#endif
+   }
+#ifdef DEBUG_VERBOSE
+   fprintf( stderr, "\n");
+#endif
+#endif
 }
 
 
@@ -198,6 +246,7 @@ static void *   _mulle_vm_alloc_ospages( struct mulle_vm *vm, size_t size)
 
 
 // the mulle_vm_page MUST have been removed from pages already!
+// (if you are freeing all the pages from mulle_vm_page)
 static void   _mulle_vm_free_ospages( struct mulle_vm *vm,
                                       void *mem,
                                       size_t size)
@@ -205,6 +254,7 @@ static void   _mulle_vm_free_ospages( struct mulle_vm *vm,
    size_t   count;
    size_t   pagesize;
    size_t   avail;
+   int      rval;
 
    pagesize = mulle_vm_get_pagesize( vm);
    assert( size == round_down_to_pagesize( size, pagesize));
@@ -214,7 +264,7 @@ static void   _mulle_vm_free_ospages( struct mulle_vm *vm,
    avail = vm->config.cachesize - count;
 
    //
-   // freed_ospages indiviual pages for reuse
+   // freed_ospages individual pages for reuse
    //
    while( count < avail)
    {
@@ -227,21 +277,29 @@ static void   _mulle_vm_free_ospages( struct mulle_vm *vm,
       ++count;
    }
 
-   // free rest wholesal
-   (vm->config.free_pages)( mem, size);
+   // free rest wholesale
+   rval = (vm->config.free_pages)( mem, size);
+   if( rval)
+   {
+      // what to do ?
+      fprintf( stderr, "mulle-vm: page %p wrongly freed by mishaved thread ? (%d)\n", mem, rval);
+#ifdef DEBUG
+      abort();
+#endif
+   }
 }
 
 
 static void   _mulle_vm_free_unused_ospages( struct mulle_vm *vm,
                                              struct mulle_vm_page *page)
 {
+#ifdef MULLE_VM_SHRINK_OSPAGE_USAGE
    size_t   free_size;
    char     *free_page;
 
    // do not do shared pages
    if( _mulle_atomic_pointer_read( &page->retain_count))
       return;
-
    //
    // the page can't be empty though, if it is, it's an error. you should
    // have called mulle_vm_remove_page_at_index
@@ -264,6 +322,7 @@ static void   _mulle_vm_free_unused_ospages( struct mulle_vm *vm,
       page->used.location -= free_size;
 
       _mulle_vm_free_ospages( vm, free_page, free_size);
+      page->size          -= free_size;
    }
 
    free_size = mulle_vm_page_get_available_back( page);
@@ -274,10 +333,11 @@ static void   _mulle_vm_free_unused_ospages( struct mulle_vm *vm,
       free_size            = round_down_to_pagesize( free_size, mulle_vm_get_pagesize( vm));
       free_page            = &((char *) page->bytes)[ page->size - free_size];
 
-      page->used.length   -= free_size;
-
       _mulle_vm_free_ospages( vm, free_page, free_size);
+
+      page->size          -= free_size;
    }
+#endif
 }
 
 
@@ -289,7 +349,15 @@ static void   _mulle_vm_reset_freed_ospages( struct mulle_vm *vm)
    pagesize = mulle_vm_get_pagesize( vm);
    mulle_pointerarray_for( &vm->freed_ospages, page)
    {
-      (vm->config.free_pages)( page, pagesize);
+      rval = (vm->config.free_pages)( page, pagesize);
+      if( rval)
+      {
+      // what to do ?
+         fprintf( stderr, "mulle-vm: page %p wrongly freed by mishaved thread ? (%d)\n", mem, rval);
+#ifdef DEBUG
+         abort();
+#endif
+      }
    }
    mulle_pointerarray_reset( &vm->freed_ospages);
 }
@@ -301,25 +369,6 @@ static void   _mulle_vm_reset_freed_ospages( struct mulle_vm *vm)
  **
  **
  */
-#ifndef MULLE_TEST
-static
-#endif
-struct mulle_vm_page *
-   _mulle_vm_new_page( struct mulle_vm *vm, size_t length)
-{
-   size_t                 size;
-   void                   *mem;
-   struct mulle_vm_page   *page;
-
-   size = round_up_to_pagesize( length, mulle_vm_get_pagesize( vm));
-   mem  = _mulle_vm_alloc_ospages( vm, size);
-
-   page = mulle_vm_page_alloc();
-   mulle_vm_page_init( page, mem, mulle_range_make( 0, length), size);
-   return( page);
-}
-
-
 #ifndef MULLE_TEST
 static
 #endif
@@ -389,24 +438,6 @@ void   _mulle_vm_release_all_pages( struct mulle_vm *vm)
    {
       _mulle_vm_release_page( vm, mapping->page);
    }
-}
-
-
-
-static inline uintptr_t   mulle_vm_get_length( struct mulle_vm *vm)
-{
-   uintptr_t                  vm_address;
-   struct mulle_vm_mapping   *info;
-
-   if( ! vm)
-      return( 0);
-
-   info = _mulle_structarray_get_last( &vm->mappings);
-   if( ! info)
-      return( 0);
-
-   vm_address = info->address + info->page->used.length;
-   return( vm_address);
 }
 
 
@@ -626,8 +657,6 @@ void   _mulle_vm_remove_mapping_at_index( struct mulle_vm *vm,
    mapping = _mulle_vm_get_mapping( vm, index);
    _mulle_vm_release_page( vm, mapping->page);
    mulle_structarray_remove_at_index( &vm->mappings, index);
-
-   mulle_vm_assert( vm);
 }
 
 
@@ -648,7 +677,6 @@ int   mulle_vm_remove_mapping_at_location( struct mulle_vm *vm,
    diff = -(intptr_t) page->used.length;
 
    _mulle_vm_remove_mapping_at_index( vm, index);
-
    _mulle_vm_adjust_addresses( vm, index, diff);
 
    mulle_vm_assert( vm);
@@ -686,8 +714,6 @@ static void   _mulle_vm_insert_page( struct mulle_vm *vm,
    }
 
    mulle_structarray_insert( &vm->mappings, index, &info);
-
-   mulle_vm_assert( vm);
 }
 
 
@@ -974,6 +1000,7 @@ void   mulle_vm_delete( struct mulle_vm *vm,
          _mulle_vm_remove_mapping_at_index( vm, end_index);
          // move following pages down
          _mulle_vm_adjust_addresses( vm, end_index, - (intptr_t) range.length);
+         mulle_vm_assert( vm);
          return;
       }
 
@@ -1030,6 +1057,7 @@ void   mulle_vm_delete( struct mulle_vm *vm,
       _mulle_vm_free_unused_ospages( vm, end->page);
       mulle_vm_assert_page( vm, end->page);
       _mulle_vm_adjust_addresses( vm, end_index + 1, - (intptr_t) range.length);
+      mulle_vm_assert( vm);
       return;
    }
 
@@ -1115,6 +1143,7 @@ void   mulle_vm_delete( struct mulle_vm *vm,
    }
 
    _mulle_vm_adjust_addresses( vm, adjust_idx, - (intptr_t) range.length);
+   mulle_vm_assert( vm);
 }
 
 
@@ -1167,17 +1196,17 @@ void *   _mulle_vm_io( struct mulle_vm      *vm,
                        void                 *buffer,
                        int                  write_flag)  // 1 w: 0: r
 {
-   size_t                     buf_pos;
-   size_t                     i;
-   uintptr_t                  logical_pos;
-   size_t                     offset;
-   size_t                     page_bytes_available;
-   size_t                     remaining;
-   size_t                     to_copy;
-   size_t                     usable_len;
-   size_t                     usable_start;
-   size_t                     n;
-   intptr_t                   info_index;
+   size_t                    buf_pos;
+   size_t                    i;
+   uintptr_t                 logical_pos;
+   size_t                    offset;
+   size_t                    page_bytes_available;
+   size_t                    remaining;
+   size_t                    to_copy;
+   size_t                    usable_len;
+   size_t                    usable_start;
+   size_t                    n;
+   intptr_t                  info_index;
    struct mulle_vm_mapping   *info;
 
    if( range.length == 0)
@@ -1292,9 +1321,18 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
    intptr_t                   info_index;
 
    if( ! callback)
+   {
+      errno = EINVAL;
       return( -1);
+   }
 
    range = mulle_range_validate_against_length( range, mulle_vm_get_length( vm));
+   if( ! mulle_range_is_valid( range))
+   {
+      errno = ERANGE;
+      return( -1);
+   }
+
    if( range.length == 0)
       return( 0);
 
@@ -1312,8 +1350,7 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
    }
 
    startinfo_index = _mulle_vm_search_mapping_index( vm, start_location);
-   if( startinfo_index < 0)
-      return( -1);
+   assert( startinfo_index >= 0);
    startinfo = _mulle_vm_get_mapping( vm, startinfo_index);
 
    // Check if the read fits entirely inside the found page
@@ -1327,8 +1364,7 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
    else
    {
       endinfo_index = _mulle_vm_search_mapping_index( vm, end_location);
-      if( endinfo_index < 0)
-         return( -1);
+      assert( endinfo_index >= 0);
       endinfo       = _mulle_vm_get_mapping( vm, endinfo_index);
 
       assert( direction == 1
@@ -1341,6 +1377,8 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
    data            = mulle_vm_mapping_get_data_in_range( startinfo, intersection);
    rval            = (*callback)( data, page_range, userinfo);
 
+   // preset errno to something, that callback then can change
+   errno = ENOENT;
    if( rval || endinfo_index == startinfo_index)
       return( rval);
 
@@ -1394,13 +1432,25 @@ int   mulle_vm_copy( struct mulle_vm *dst,
    size_t                     length;
 
    if( dst == src)
+   {
+      errno = EINVAL;
       return( -1);
+   }
 
-   length = mulle_vm_get_length( src);
-   range  = mulle_range_validate_against_length( range, length);
+   assert( dst->config.alloc_pages == src->config.alloc_pages);
+   assert( dst->config.free_pages == src->config.free_pages);
 
    // clean original, we do this always
    mulle_vm_delete( dst, mulle_range_make_all());
+
+   length = mulle_vm_get_length( src);
+   range  = mulle_range_validate_against_length( range, length);
+   if( ! mulle_range_is_valid( range))
+   {
+      errno = ERANGE;
+      return( -1);
+   }
+
    if( range.length == 0)
       return( 0);
 
@@ -1456,6 +1506,8 @@ int   mulle_vm_copy( struct mulle_vm *dst,
       // vm_address += copy.used.length;
    }
    // no need to adjust, we added to empty vm
+   mulle_vm_assert( dst);
+   mulle_vm_assert( src);
    return( 0);
 }
 
@@ -1495,7 +1547,13 @@ int   mulle_vm_paste( struct mulle_vm *dst,
    size_t                      length;
 
    if( dst == src)
+   {
+      errno = EINVAL;
       return( -1);
+   }
+
+   assert( dst->config.alloc_pages == src->config.alloc_pages);
+   assert( dst->config.free_pages == src->config.free_pages);
 
    // delete range if any
    mulle_vm_delete( dst, range);
@@ -1512,6 +1570,12 @@ int   mulle_vm_paste( struct mulle_vm *dst,
    {
       start     = _mulle_structarray_get( &dst->mappings, start_index);
       tail_page = _mulle_vm_split_mapping_at( dst, start, start_index, range.location);
+      if( ! tail_page)
+         start_index = -1;
+   }
+   else
+   {
+      start_index = _mulle_structarray_get_count( &dst->mappings) - 1;
    }
 
    idx = start_index; // -1 is OK
@@ -1559,6 +1623,9 @@ int   mulle_vm_paste( struct mulle_vm *dst,
       // No tail page, just adjust pages after the last inserted page
       _mulle_vm_adjust_addresses( dst, idx + 1, + (intptr_t) length);
    }
+
+   mulle_vm_assert( src);
+   mulle_vm_assert( dst);
 
    return( 0);
 }

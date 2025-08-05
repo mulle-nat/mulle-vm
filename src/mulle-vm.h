@@ -3,11 +3,9 @@
 
 #include "include.h"
 
-
+#include "mulle-vm-page.h"
 #include <stdint.h>
 
-
-struct mulle_vm_page;
 
 /*
  *  (c) <|YEAR|> nat <|ORGANIZATION|>
@@ -282,6 +280,22 @@ int  mulle_vm_walk_reverse( struct mulle_vm *vm,
 /*
  *                      General API
  */
+static inline uintptr_t   mulle_vm_get_length( struct mulle_vm *vm)
+{
+   uintptr_t                  vm_address;
+   struct mulle_vm_mapping   *info;
+
+   if( ! vm)
+      return( 0);
+
+   info = _mulle_structarray_get_last( &vm->mappings);
+   if( ! info)
+      return( 0);
+
+   vm_address = info->address + info->page->used.length;
+   return( vm_address);
+}
+
 
 //
 // Main: optimized read

@@ -1,0 +1,23 @@
+Checkout the [API](API.md) for detailed description about the available
+functions.
+
+Here is a simple example:
+
+
+``` c
+   static char   text[] = "VfL Bochum 1848";
+
+   // Initialize VMs
+   mulle_vm_init( &vm, NULL, NULL);
+
+   mulle_vm_insert( &vm, mulle_range_make( 0, strlen( text), text);
+
+   mulle_vm_init( &copy, NULL, NULL);
+   mulle_vm_copy( &copy, &vm, mulle_range_make( 4, 6));  // copy Bochum
+
+   mulle_vm_paste( &vm, mulle_range_make( 0, 3), copy);   // replace VfL
+   mulle_vm_paste( &vm, mulle_range_make( 14, 4), copy);  // replace 1848
+   mulle_vm_done( &copy);
+
+   mulle_vm_done( &vm);
+```

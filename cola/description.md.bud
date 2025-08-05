@@ -1,14 +1,14 @@
 A virtual memory system that runs in user space. Its beneficial when you are
 writing an editor, which wants to edits huge files, as insertion and deletion
-are compartively super-fast. Reading and writing is very much slower though,
+are comparatively super-fast. Reading and writing is very much slower though,
 but the reasoning is, they are still fast enough for all editor purposes.
 
 It's detrimental in read only situations.
 
-A single instance of mulle_vm is not thread safe, if you need threadsafe
-access you need to add locking code. However you can edit separate mulle_vm
-instances in different threads, even when they contained shared pages. This is
-relevant for copy/paste, where you might have put a "mulle_vm" with copy
-contents on a pasteboard and then want to "paste" it into a different
-mulle_vm in a different thread.
+A single instance of `struct mulle_vm` is not thread safe. If you need
+threadsafe access you need to add locking code. However you can edit separate
+`struct mulle_vm` instances in different threads, even when they contained
+shared pages. This is relevant for copy/paste, where you might have put a
+`struct mulle_vm` with "copy" contents on a pasteboard and then want to "paste"
+it into a different `struct mulle_vm` in a different thread.
 

@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+#define TEST_1
+#define TEST_2
+#define TEST_3
+
+
 static void show_vm_info(struct mulle_vm *vm, const char *name)
 {
    struct mulle_vm_statistics info;
@@ -27,6 +33,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
       ++i;
    }
 }
+
 
 static void dump_vm_content(struct mulle_vm *vm, const char *name)
 {
@@ -85,6 +92,7 @@ int main(void)
    dump_vm_content(&dst_vm, "Dest VM");
    printf("\n");
 
+#ifdef TEST_1
    // First paste operation - paste entire source at beginning
    printf("Test 1: First paste operation (paste at beginning)\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(0, 0), &src_vm);
@@ -92,7 +100,9 @@ int main(void)
    show_vm_info(&dst_vm, "Dest VM after first paste");
    dump_vm_content(&dst_vm, "Dest VM after first paste");
    printf("\n");
+#endif
 
+#ifdef TEST_2
    // Second paste operation - paste source at end (append)
    printf("Test 2: Second paste operation (paste at end - append)\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(data_size, 0), &src_vm);
@@ -100,7 +110,9 @@ int main(void)
    show_vm_info(&dst_vm, "Dest VM after second paste");
    dump_vm_content(&dst_vm, "Dest VM after second paste");
    printf("\n");
+#endif
 
+#ifdef TEST_3
    // Third paste operation - paste source in the middle (replace some content)
    printf("Test 3: Third paste operation (paste in middle - replace)\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(data_size / 2, data_size / 4), &src_vm);
@@ -108,6 +120,7 @@ int main(void)
    show_vm_info(&dst_vm, "Dest VM after third paste");
    dump_vm_content(&dst_vm, "Dest VM after third paste");
    printf("\n");
+#endif
 
    // Verify source VM is unchanged
    printf("Verify source VM unchanged:\n");

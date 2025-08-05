@@ -6,15 +6,44 @@ Source VM: 1 vm pages 7 os pages, 51 bytes
 Hello World! This is test data for copy operations. (length: 51)
 Dest VM: 0 vm pages 0 os pages, 0 bytes
 
+Test 1: Copy first 5 characters (0-5)
+Copy result: 0
+Dest VM: 1 vm pages 1 os pages, 5 bytes
+  Page 0: vm_addr=0, size=8, used=[0,5], retain_count=0
+Hello (length: 5)
+
+Test 2: Copy middle section (6-11)
+Copy result: 0
+Dest VM: 1 vm pages 1 os pages, 6 bytes
+  Page 0: vm_addr=0, size=8, used=[0,6], retain_count=0
+World! (length: 6)
+
 Test 3: Copy entire content
 Copy result: 0
 Dest VM: 1 vm pages 7 os pages, 51 bytes
   Page 0: vm_addr=0, size=56, used=[1,51], retain_count=1
 Hello World! This is test data for copy operations. (length: 51)
 
+Test 4: Copy from end (last 10 characters)
+Copy result: 0
+Dest VM: 1 vm pages 2 os pages, 10 bytes
+  Page 0: vm_addr=0, size=16, used=[1,10], retain_count=0
+perations. (length: 10)
+
+Test 5: Multiple copy operations
+First copy result: 0
+Second copy result: 0
+Dest VM: 1 vm pages 1 os pages, 7 bytes
+  Page 0: vm_addr=0, size=8, used=[0,7], retain_count=0
+ World! (length: 7)
+
+Test 6: Copy with invalid range (beyond source)
+Copy result (should fail): -1
+Dest VM: 0 vm pages 0 os pages, 0 bytes
+
 Verify source VM unchanged:
 Source VM: 1 vm pages 7 os pages, 51 bytes
-  Page 0: vm_addr=0, size=56, used=[1,51], retain_count=1
+  Page 0: vm_addr=0, size=56, used=[1,51], retain_count=0
 Hello World! This is test data for copy operations. (length: 51)
 
 === Copy Test Complete ===

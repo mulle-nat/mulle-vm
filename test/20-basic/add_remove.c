@@ -5,7 +5,7 @@
 
 MULLE__VM_GLOBAL
 struct mulle_vm_page *
-   _mulle_vm_new_page( struct mulle_vm *vm, size_t length);
+   _mulle_vm_new_page_with_bytes( struct mulle_vm *vm, void *bytes, size_t length);
 
 // used by some testing code
 static inline void   mulle_vm_add_page( struct mulle_vm *vm,
@@ -29,7 +29,7 @@ void   _mulle_vm_remove_mapping_at_index( struct mulle_vm *vm,
 static void   show_vm( struct mulle_vm *vm)
 {
    struct mulle_vm_statistics   info;
-   size_t                 total_pages;
+   size_t                       total_pages;
 
    info        = mulle_vm_get_statistics( vm);
    total_pages = info.page_size / mulle_vm_get_pagesize( vm);
@@ -42,12 +42,14 @@ int   main( void)
    struct mulle_vm         vm;
    struct mulle_vm_page    *page;
    char                    buf[ 1024];
+   char                    text[ 32];
 
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
 
    show_vm( &vm);
 
-   page = _mulle_vm_new_page( &vm, 32);
+   strcpy( text, "Hello World!");
+   page = _mulle_vm_new_page_with_bytes( &vm, text, 32);
    mulle_vm_add_page( &vm, page);
    show_vm( &vm);
 

@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
-//#define TEST_FIRST
-//#define TEST_MIDDLE
-//#define TEST_END
-//#define TEST_MULTIPLE
-//#define TEST_INVALID
+#define TEST_FIRST
+#define TEST_MIDDLE
+#define TEST_END
+#define TEST_MULTIPLE
+#define TEST_INVALID
 #define TEST_ENTIRE
 
 static void show_vm_info(struct mulle_vm *vm, const char *name)

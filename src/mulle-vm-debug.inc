@@ -63,21 +63,27 @@ static int   debug_free_pages( void *p, size_t size)
 
     // Find the starting page
     int page_index = (char *)p - &debug_memory_pool[0][0];
-    if (page_index % DEBUG_PAGE_SIZE != 0) {
-        return -1;  // Invalid pointer
+    if (page_index % DEBUG_PAGE_SIZE != 0)
+    {
+        fprintf( stderr, "invalid pointer");
+        abort();
     }
 
     page_index /= DEBUG_PAGE_SIZE;
 
     // Check bounds
-    if (page_index >= DEBUG_N_PAGES || page_index + pages_needed > DEBUG_N_PAGES) {
-        return -1;  // Invalid pointer or size
+    if (page_index >= DEBUG_N_PAGES || page_index + pages_needed > DEBUG_N_PAGES)
+    {
+        fprintf( stderr, "invalid pointer or size");
+        abort();
     }
 
     // Mark pages as free
     for (int i = 0; i < pages_needed; i++) {
-        if (!debug_page_used[page_index + i]) {
-            return -1;  // Page not allocated
+        if (!debug_page_used[page_index + i])
+        {
+            fprintf( stderr,"page not allocated");
+            abort();
         }
         debug_page_used[page_index + i] = 0;
     }
