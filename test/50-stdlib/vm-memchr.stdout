@@ -1,0 +1,45 @@
+Testing mulle_vm_memchr function
+================================
+
+== Test mulle_vm_memchr with empty VM ==
+0 pages, 0 bytes
+Find 'a' in empty VM: PASS (not found)
+
+== Test mulle_vm_memchr with single page ==
+2 pages, 11 bytes
+VM content: "Hello World"
+Find 'o': PASS (found at 4)
+Find 'H': PASS (found at 0)
+Find 'd': PASS (found at 10)
+Find 'z': PASS (not found)
+
+== Test mulle_vm_memchr with multiple pages ==
+4 pages, 26 bytes
+VM content: "abcdefghijklmnopqrstuvwxyz"
+Find 'a' (first page): PASS (found at 0)
+Find 'k' (middle page): PASS (found at 10)
+Find 'z' (last page): PASS (found at 25)
+Find 'd' (first occurrence): PASS (found at 3)
+Find 'A' (not found): PASS (not found)
+
+== Test mulle_vm_memchr at page boundaries ==
+3 pages, 24 bytes
+VM content: "abcdefgTTijklmnopqrsTuvw"
+Find first 'T': PASS (found at 7)
+
+== Test mulle_vm_memchr with NULL VM ==
+Find 'a' in NULL VM: PASS (not found)
+
+== Test mulle_vm_memchr comprehensive ==
+4 pages, 26 bytes
+VM content: "abcdefghijklmnopqrstuvwxyz"
+Find 'a': PASS (found at 0)
+Find 'e': PASS (found at 4)
+Find 'i': PASS (found at 8)
+Find 'm': PASS (found at 12)
+Find 'q': PASS (found at 16)
+Find 'u': PASS (found at 20)
+Find 'x': PASS (found at 23)
+Find 'Z': PASS (not found)
+
+All mulle_vm_memchr tests completed.

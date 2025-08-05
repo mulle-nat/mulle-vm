@@ -1,0 +1,41 @@
+{
+   project =
+   {
+      description="🫧 User space virtual memory";
+      domain="github";
+      language="c";
+      dialect="c";
+      name="mulle-vm";
+      user="mulle-core";
+      repo="mulle-vm";
+      homepage="https://github.com/mulle-nat/mulle-vm";
+      license="BSD-3-Clause";
+   };
+   dependencies =
+   (
+      {
+         description="🇧🇿 Memory mapped file access";
+         domain="github";
+         name="mulle-mmap";
+         repo="mulle-mmap";
+         url="https://github.com/mulle-core/mulle-mmap";
+         user="mulle-core";
+      },
+      {
+         description="🛄 Arrays, hashtables and a queue";
+         domain="github";
+         name="mulle-container";
+         repo="mulle-container";
+         url="https://github.com/mulle-c/mulle-container";
+         user="mulle-c";
+      },
+      {
+         description="🔠 Cross-platform thread/mutex/tss/atomic operations in C";
+         domain="github";
+         name="mulle-thread";
+         repo="mulle-thread";
+         url="https://github.com/mulle-concurrent/mulle-thread";
+         user="mulle-concurrent";
+      }
+   );
+}

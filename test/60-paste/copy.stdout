@@ -1,0 +1,20 @@
+=== VM Copy Test ===
+
+Initial state:
+Source VM: 1 vm pages 7 os pages, 51 bytes
+  Page 0: vm_addr=0, size=56, used=[1,51], retain_count=0
+Hello World! This is test data for copy operations. (length: 51)
+Dest VM: 0 vm pages 0 os pages, 0 bytes
+
+Test 3: Copy entire content
+Copy result: 0
+Dest VM: 1 vm pages 7 os pages, 51 bytes
+  Page 0: vm_addr=0, size=56, used=[1,51], retain_count=1
+Hello World! This is test data for copy operations. (length: 51)
+
+Verify source VM unchanged:
+Source VM: 1 vm pages 7 os pages, 51 bytes
+  Page 0: vm_addr=0, size=56, used=[1,51], retain_count=1
+Hello World! This is test data for copy operations. (length: 51)
+
+=== Copy Test Complete ===

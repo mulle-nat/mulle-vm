@@ -1,0 +1,38 @@
+Testing mulle_memmem streaming search functions
+===============================================
+
+== Test mulle_memmem basic functionality ==
+Find "World" in "Hello World Hello": PASS (found at offset 6)
+Find "xyz" in "Hello World Hello": PASS (not found)
+Find "Hello" in "Hello World Hello": PASS (found at offset 0)
+Find "o" in "Hello World Hello": PASS (found at offset 4)
+
+== Test mulle_memmem streaming functionality ==
+First chunk "This is a test pat": PASS (partial match, not complete)
+Second chunk "tern that spans chunks": PASS (found at absolute offset 15)
+Find "abab" in "ababab": PASS (found at offset 0)
+
+== Test mulle_memmem edge cases ==
+Empty needle: PASS (not found)
+Empty haystack: PASS (not found)
+Needle longer than haystack: PASS (not found)
+Needle same as haystack: PASS (found at offset 0)
+
+== Test mulle_memrmem basic functionality ==
+Find "Hello" (reverse) in "Hello World Hello": PASS (found at offset 12)
+Find "xyz" (reverse) in "Hello World Hello": PASS (not found)
+Find "o" (reverse) in "Hello World Hello": PASS (found at offset 16)
+
+== Test mulle_memrmem streaming functionality ==
+Reverse search for "cat" in "dog cat bird cat end": PASS (found last occurrence at offset 13)
+
+== Test large needle (buffer allocation) ==
+Large needle (59 chars) search: PASS (found at offset 60)
+
+== Test binary data with null bytes ==
+Binary search with null bytes: PASS (found at offset 2)
+
+== Test performance with large data ==
+Large buffer (100k) search: PASS (found at offset 99938)
+
+All mulle_memmem tests completed.

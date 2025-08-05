@@ -1,0 +1,3 @@
+mulle-mmap;${MULLE__MMAP_NODETYPE:-git};no-all-load,no-cmake-loader,no-cmake-searchpath,no-import;6B9468BC-52D9-420E-AA5F-9EC2851C3577;${MULLE__MMAP_URL:-https://github.com/mulle-core/mulle-mmap.git};${MULLE__MMAP_BRANCH};${MULLE__MMAP_TAG};;
+mulle-container;${MULLE__CONTAINER_NODETYPE:-git};no-all-load,no-cmake-loader,no-cmake-searchpath,no-import;DD7205EE-6AC3-4471-914E-2B046E0FEDA2;${MULLE__CONTAINER_URL:-https://github.com/mulle-c/mulle-container.git};${MULLE__CONTAINER_BRANCH};${MULLE__CONTAINER_TAG};;
+mulle-thread;${MULLE__THREAD_NODETYPE:-git};no-all-load,no-cmake-loader,no-cmake-searchpath,no-import;6194B67B-90E1-4BF1-A973-7A31A7858DB8;${MULLE__THREAD_URL:-https://github.com/mulle-concurrent/mulle-thread.git};${MULLE__THREAD_BRANCH};${MULLE__THREAD_TAG};;

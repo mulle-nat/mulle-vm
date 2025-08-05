@@ -1,0 +1,1 @@
+mulle-vm;${MULLE__VM_NODETYPE:-tar};;5F901EA7-590B-4161-9D7D-8B24AAF27B3C;${MULLE__VM_URL:-https://github.com/nat/mulle-vm/archive/${MULLE_TAG}.tar.gz};${MULLE__VM_BRANCH};${MULLE__VM_TAG:-latest};;

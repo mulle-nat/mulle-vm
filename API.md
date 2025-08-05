@@ -188,9 +188,9 @@ static int walk_callback(struct mulle_data data,
 
 ```c
 int mulle_vm_walk(struct mulle_vm *vm,
-               struct mulle_range range,
-               mulle_vm_walk_callback_t *callback,
-               void *userinfo);
+                  struct mulle_range range,
+                  mulle_vm_walk_callback_t *callback,
+                  void *userinfo);
 ```
 
 #### Description
@@ -358,11 +358,13 @@ struct mulle_vm_config
 ```
 
 #### Description
-Configuration structure for initializing a mulle-vm instance. This structure allows customization of memory allocation behavior, page management, and other VM parameters.
+Configuration structure for initializing a mulle-vm instance. This structure allows customization of memory allocation behavior, page management, and other VM parameters. The allocator/free functionality must
+deal with memory on a page level. So you must be able to allocate three pages
+and then free the one in the middle. This precludes malloc/free.
 
 #### Members
-- **alloc_pages**: Memory allocation function for pages. If NULL, uses system malloc.
-- **free_pages**: Memory deallocation function for pages. If NULL, uses system free.
+- **alloc_pages**: Memory allocation function for pages. If NULL, uses mulle_mmap_alloc_pages.
+- **free_pages**: Memory deallocation function for pages. If NULL, uses mulle_mmap_free_pages.
 - **shutdown**: Optional shutdown callback called during mulle_vm_done().
 - **pagesize**: Size of each page in bytes. Default is MULLE__VM_PAGESIZE_DEFAULT (0x4000).
 - **skew**: Skew parameter for address calculation. Default is MULLE__VM_SKEW_DEFAULT (25).
@@ -373,8 +375,8 @@ Configuration structure for initializing a mulle-vm instance. This structure all
 #include "mulle-vm.h"
 
 struct mulle_vm_config config = {
-   .alloc_pages = NULL,  // Use system malloc
-   .free_pages = NULL,   // Use system free
+   .alloc_pages = NULL,  // Use mulle_mmap_alloc_pages
+   .free_pages = NULL,   // Use mulle_mmap_free_pages
    .shutdown = NULL,     // No custom shutdown
    .pagesize = 4096,     // 4KB pages
    .skew = 25,           // Default skew
@@ -392,7 +394,7 @@ struct mulle_vm_config mulle_vm_config_default;
 Default configuration for mulle-vm instances. Contains sensible defaults for most use cases:
 - pagesize: MULLE__VM_PAGESIZE_DEFAULT (0x4000)
 - skew: MULLE__VM_SKEW_DEFAULT (25)
-- alloc_pages/free_pages: NULL (uses system malloc/free)
+- alloc_pages/free_pages: NULL (uses mulle_mmap_alloc_pages/free)
 - shutdown: NULL (no custom shutdown)
 - cachesize: 0
 

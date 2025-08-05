@@ -1,0 +1,100 @@
+Testing mulle_memrchr function
+==============================
+
+== Test mulle_memrchr basic functionality ==
+Find last 'l' in "Hello World": PASS (found at offset 9)
+Find 'z' in "Hello World": PASS (not found)
+Find 'H' in "Hello World": PASS (found at offset 0)
+Find 'd' in "Hello World": PASS (found at offset 10)
+
+== Test mulle_memrchr edge cases ==
+Find 'a' in empty string: PASS (not found)
+Find '\0' in "Hello\0World": PASS (found at offset 5)
+Find 'A' in single char "A": PASS (found at offset 0)
+Find 'W' in first 5 chars of "Hello World": PASS (not found in limited range)
+
+== Test mulle_memrchr with multiple occurrences ==
+Find last 'a' in "abcabcabc": PASS (found at offset 6)
+Find last 'b' in "abcabcabc": PASS (found at offset 7)
+Find last 'c' in "abcabcabc": PASS (found at offset 8)
+
+== Test mulle_memrchr alignment scenarios ==
+Alignment 0: Find last 'T' in 48 bytes: PASS
+Alignment 1: Find last 'T' in 48 bytes: PASS
+Alignment 2: Find last 'T' in 48 bytes: PASS
+Alignment 3: Find last 'T' in 48 bytes: PASS
+Alignment 4: Find last 'T' in 48 bytes: PASS
+Alignment 5: Find last 'T' in 48 bytes: PASS
+Alignment 6: Find last 'T' in 48 bytes: PASS
+Alignment 7: Find last 'T' in 48 bytes: PASS
+
+== Test mulle_memrchr with large data ==
+Find 'Z' in 10000 'A's: PASS (not found)
+Find last 'T' with one at position 0: PASS
+Find last 'T' with one at position 7: PASS
+Find last 'T' with one at position 8: PASS
+Find last 'T' with one at position 15: PASS
+Find last 'T' with one at position 16: PASS
+Find last 'T' with one at position 1000: PASS
+Find last 'T' with one at position 5000: PASS
+Find last 'T' with one at position 9999: PASS
+
+== Test mulle_memrchr vs reference implementation ==
+String "Hello World", char 'e': PASS
+String "Hello World", char 'A': PASS
+String "Hello World", char '5': PASS
+String "Hello World", char 'a': PASS
+String "Hello World", char 'x': PASS
+String "Hello World", char 'z': PASS
+String "Hello World", char 'X': PASS
+String "Hello World", char 'c': PASS
+String "ABCDEFGHIJKLMNOP", char 'e': PASS
+String "ABCDEFGHIJKLMNOP", char 'A': PASS
+String "ABCDEFGHIJKLMNOP", char '5': PASS
+String "ABCDEFGHIJKLMNOP", char 'a': PASS
+String "ABCDEFGHIJKLMNOP", char 'x': PASS
+String "ABCDEFGHIJKLMNOP", char 'z': PASS
+String "ABCDEFGHIJKLMNOP", char 'X': PASS
+String "ABCDEFGHIJKLMNOP", char 'c': PASS
+String "1234567890123456", char 'e': PASS
+String "1234567890123456", char 'A': PASS
+String "1234567890123456", char '5': PASS
+String "1234567890123456", char 'a': PASS
+String "1234567890123456", char 'x': PASS
+String "1234567890123456", char 'z': PASS
+String "1234567890123456", char 'X': PASS
+String "1234567890123456", char 'c': PASS
+String "aaaaaaaaaaaaaaaaa", char 'e': PASS
+String "aaaaaaaaaaaaaaaaa", char 'A': PASS
+String "aaaaaaaaaaaaaaaaa", char '5': PASS
+String "aaaaaaaaaaaaaaaaa", char 'a': PASS
+String "aaaaaaaaaaaaaaaaa", char 'x': PASS
+String "aaaaaaaaaaaaaaaaa", char 'z': PASS
+String "aaaaaaaaaaaaaaaaa", char 'X': PASS
+String "aaaaaaaaaaaaaaaaa", char 'c': PASS
+String "The quick brown fox", char 'e': PASS
+String "The quick brown fox", char 'A': PASS
+String "The quick brown fox", char '5': PASS
+String "The quick brown fox", char 'a': PASS
+String "The quick brown fox", char 'x': PASS
+String "The quick brown fox", char 'z': PASS
+String "The quick brown fox", char 'X': PASS
+String "The quick brown fox", char 'c': PASS
+String "abcabcabcabc", char 'e': PASS
+String "abcabcabcabc", char 'A': PASS
+String "abcabcabcabc", char '5': PASS
+String "abcabcabcabc", char 'a': PASS
+String "abcabcabcabc", char 'x': PASS
+String "abcabcabcabc", char 'z': PASS
+String "abcabcabcabc", char 'X': PASS
+String "abcabcabcabc", char 'c': PASS
+String "XYXYXYXYXYXY", char 'e': PASS
+String "XYXYXYXYXYXY", char 'A': PASS
+String "XYXYXYXYXYXY", char '5': PASS
+String "XYXYXYXYXYXY", char 'a': PASS
+String "XYXYXYXYXYXY", char 'x': PASS
+String "XYXYXYXYXYXY", char 'z': PASS
+String "XYXYXYXYXYXY", char 'X': PASS
+String "XYXYXYXYXYXY", char 'c': PASS
+
+All mulle_memrchr tests completed.

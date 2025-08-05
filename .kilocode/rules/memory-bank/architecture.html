@@ -1,0 +1,23 @@
+<h1 id="mulle-vm-architecture-decisions">mulle-vm Architecture Decisions</h1>
+<h2 id="page-memory-management-critical---do-not-violate">Page Memory Management (Critical - Do Not Violate)</h2>
+<p><strong>ALL pages in mulle-vm ALWAYS have valid backing memory allocated.</strong></p>
+<ul>
+<li><strong>All pages</strong>: All pages have the same known size</li>
+<li><strong>Used pages</strong>: Have a non-zero <code>used_range</code> indicating what portion of the page contains data</li>
+<li><strong>Unused pages</strong>: Have <code>mulle_range_zero</code> as their <code>used_range</code> but still have valid <code>address</code> pointing to allocated memory</li>
+<li><strong>NEVER</strong>: No page_info struct ever has a NULL <code>address</code> pointer</li>
+<li><strong>DYNAMIC ALLOCATION</strong>: Pages can be allocated on-demand in write operations, if no more space is available</li>
+</ul>
+<p>This means:</p>
+<ol>
+<li><code>mulle_vm_init</code> may or may not pre-allocate some pages with valid memory but zero range</li>
+<li><code>mulle_vm_read</code> and <code>mulle_vm_write</code> should never check for <code>page_info-&gt;address == NULL</code></li>
+<li>The distinction between used/unused pages is determined by <code>mulle_range_is_zero(page_info-&gt;used_range)</code></li>
+<li>Memory optimization comes from tracking usage via <code>used_range</code>, not by having NULL pointers</li>
+</ol>
+<p><strong>Previous Mistakes Made:</strong></p>
+<ul>
+<li>Added NULL pointer checks for <code>page_info-&gt;address</code>, its always not NULL</li>
+<li>Added mulle_range_is_valid checks for <code>page_info-&gt;used_range</code>, they are always valid</li>
+<li>Misunderstood that unused pages could have NULL backing memory</li>
+</ul>

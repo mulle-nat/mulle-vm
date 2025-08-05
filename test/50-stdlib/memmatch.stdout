@@ -1,0 +1,32 @@
+Running mulle_memmatch tests...
+
+== Test: Basic functionality ==
+Find 'H': PASS
+Find '!': PASS
+Find 'l' (first): PASS
+Find 'X' (not present): PASS
+
+== Test: Edge cases ==
+Empty buffer: PASS
+Find '\0' in "Hello\0World": PASS
+Single char 'A' match: PASS
+Find 'Z' in "Hello": PASS
+
+== Test: Alignment (from any offset) ==
+Alignment 0: PASS (found 'T' at offset 16)
+Alignment 1: PASS (found 'T' at offset 15)
+Alignment 2: PASS (found 'T' at offset 14)
+Alignment 3: PASS (found 'T' at offset 13)
+Alignment 4: PASS (found 'T' at offset 12)
+Alignment 5: PASS (found 'T' at offset 11)
+Alignment 6: PASS (found 'T' at offset 10)
+Alignment 7: PASS (found 'T' at offset 9)
+
+== Test: Large buffer (10k) ==
+Find 'T' in all 'A's: PASS
+Find 'T' at pos 0: PASS
+Find 'T' at pos 100: PASS
+Find 'T' at pos 5000: PASS
+Find 'T' at pos 9999: PASS
+
+🎉 All tests complete. No extra code, no self-reference. Just output.
