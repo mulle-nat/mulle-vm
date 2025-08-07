@@ -40,24 +40,18 @@
 
 static struct
 {
-   struct mulle_structarray   vm_pages;
-   struct mulle_pointerarray  vm_freed_pages;
-   mulle_thread_mutex_t       lock;
+   struct mulle_storage   vm_pages;
+   mulle_thread_mutex_t   lock;
 } global;
 
 
 struct mulle_vm_page   *mulle_vm_page_alloc( void)
 {
-   struct mulle_vm_page          *page;
-   static struct mulle_vm_page   empty = { 0 };
+   struct mulle_vm_page   *page;
 
    mulle_thread_mutex_do( global.lock)
    {
-      page = mulle_pointerarray_pop( &global.vm_freed_pages);
-      if( page)
-         memset( page, 0, sizeof( struct mulle_vm_page));
-      else
-         page = _mulle_structarray_add( &global.vm_pages, &empty);
+      page = _mulle_storage_calloc( &global.vm_pages);
    }
    return( page);
 }
@@ -65,12 +59,9 @@ struct mulle_vm_page   *mulle_vm_page_alloc( void)
 
 void   mulle_vm_page_free( struct mulle_vm_page *page)
 {
-   if( ! page)
-      return;
-
    mulle_thread_mutex_do( global.lock)
    {
-      mulle_pointerarray_add( &global.vm_freed_pages, page);
+      _mulle_storage_free( &global.vm_pages, page);
    }
 }
 
@@ -80,11 +71,10 @@ MULLE_C_CONSTRUCTOR( load)
 static void   load( void)
 {
    mulle_thread_mutex_init( &global.lock);
-   mulle_structarray_init( &global.vm_pages, sizeof( struct mulle_vm_page),
-                                             alignof( struct mulle_vm_page),
-                                             16,
-                                             &mulle_allocator_stdlib);
-   mulle_pointerarray_init( &global.vm_freed_pages, 0, &mulle_allocator_stdlib);
+   _mulle_storage_init( &global.vm_pages, sizeof( struct mulle_vm_page),
+                                          alignof( struct mulle_vm_page),
+                                          16,
+                                          &mulle_allocator_stdlib);
 }
 
 
@@ -92,8 +82,7 @@ static void   load( void)
 MULLE_C_DESTRUCTOR( unload)
 static void   unload( void)
 {
-   mulle_pointerarray_done( &global.vm_freed_pages);
-   mulle_structarray_done( &global.vm_pages);
+   _mulle_storage_done( &global.vm_pages);
    mulle_thread_mutex_done( &global.lock);
 }
 

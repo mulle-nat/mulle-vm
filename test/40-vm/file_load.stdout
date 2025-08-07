@@ -1,0 +1,6 @@
+=== Load file into VM1, print content ===
+VM1 content: VfL Bochum 1848
+
+=== Transfer to VM2, print content ===
+VM2 content: VfL Bochum 1848
+Test completed!
