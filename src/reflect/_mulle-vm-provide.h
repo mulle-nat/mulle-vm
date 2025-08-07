@@ -17,6 +17,7 @@
 #include "mulle-memmatch.h"
 #include "mulle-memmem.h"
 #include "mulle-memspn.h"
+#include "mulle-vm-file.h"
 #include "mulle-vm-page.h"
 #include "mulle-vm-stdlib.h"
 

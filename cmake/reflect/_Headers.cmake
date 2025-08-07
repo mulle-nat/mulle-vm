@@ -60,6 +60,7 @@ src/mulle-memchr.h
 src/mulle-memmatch.h
 src/mulle-memmem.h
 src/mulle-memspn.h
+src/mulle-vm-file.h
 src/mulle-vm.h
 src/mulle-vm-page.h
 src/mulle-vm-stdlib.h

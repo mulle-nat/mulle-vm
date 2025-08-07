@@ -13,6 +13,7 @@ endif()
 set( SOURCES
 src/mulle-memmem.c
 src/mulle-vm.c
+src/mulle-vm-file.c
 src/mulle-vm-page.c
 src/mulle-vm-stdlib.c
 )

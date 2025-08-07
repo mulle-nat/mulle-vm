@@ -1,13 +1,23 @@
 === Testing mulle_vm_walk ===
-Walking VM from 0 to 26...
+Walking VM from 0 to 25...
 walk: {0, 8} -> 'abcdefgh'
 walk: {8, 16} -> 'ijklmnop'
 walk: {16, 24} -> 'qrstuvwx'
 walk: {24, 26} -> 'yz'
 === Walk completed successfully ===
-Walking VM from 26 to 0...
+Walking VM from 25 to 0...
 walk: {24, 26} -> 'yz'
 walk: {16, 24} -> 'qrstuvwx'
 walk: {8, 16} -> 'ijklmnop'
 walk: {0, 8} -> 'abcdefgh'
+=== Walk completed successfully ===
+Walking VM from 6 to 18...
+walk: {6, 8} -> 'gh'
+walk: {8, 16} -> 'ijklmnop'
+walk: {16, 19} -> 'qrs'
+=== Walk completed successfully ===
+Walking VM from 18 to 6...
+walk: {16, 19} -> 'qrs'
+walk: {8, 16} -> 'ijklmnop'
+walk: {6, 8} -> 'gh'
 === Walk completed successfully ===

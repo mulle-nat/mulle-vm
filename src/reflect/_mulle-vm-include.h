@@ -15,48 +15,33 @@
 #define _mulle_vm_include_h__
 
 // To remove the following dependency (headers and library) completely:
-//   `mulle-sde dependency remove mulle-mmap`
-// (Use 6B9468BC-52D9-420E-AA5F-9EC2851C3577 instead of mulle-mmap, if there are duplicate entries)
+//   `mulle-sde dependency remove mulle-core`
+// (Use 7ABF793B-4745-4A94-916B-25B03FA02B4A instead of mulle-core, if there are duplicate entries)
 //
 // You can tweak the following #include with these commands:
-//    remove #include: `mulle-sde dependency mark mulle-mmap no-header`
-//    rename              : `mulle-sde dependency|library set mulle-mmap include whatever.h`
-//    reorder             : `mulle-sde dependency move mulle-mmap <up|down>`
-//    toggle #include: `mulle-sde dependency mark mulle-mmap [no-]import`
-//    toggle public       : `mulle-sde dependency mark mulle-mmap [no-]public`
-//    toggle optional     : `mulle-sde dependency mark mulle-mmap [no-]require`
-//    remove for platform : `mulle-sde dependency mark mulle-mmap no-platform-<uname>`
+//    remove #include: `mulle-sde dependency mark mulle-core no-header`
+//    rename              : `mulle-sde dependency|library set mulle-core include whatever.h`
+//    reorder             : `mulle-sde dependency move mulle-core <up|down>`
+//    toggle #include: `mulle-sde dependency mark mulle-core [no-]import`
+//    toggle public       : `mulle-sde dependency mark mulle-core [no-]public`
+//    toggle optional     : `mulle-sde dependency mark mulle-core [no-]require`
+//    remove for platform : `mulle-sde dependency mark mulle-core no-platform-<uname>`
 //        (use `mulle-sourcetree-to-c --unames` to list known values)
-#include <mulle-mmap/mulle-mmap.h>   // mulle-mmap
+#include <mulle-core/mulle-core.h>   // mulle-core
 
 // To remove the following dependency (headers and library) completely:
-//   `mulle-sde dependency remove mulle-container`
-// (Use DD7205EE-6AC3-4471-914E-2B046E0FEDA2 instead of mulle-container, if there are duplicate entries)
+//   `mulle-sde dependency remove mulle-iovec`
+// (Use A6FA4535-6F62-4F81-BD28-A961DA7BB787 instead of mulle-iovec, if there are duplicate entries)
 //
 // You can tweak the following #include with these commands:
-//    remove #include: `mulle-sde dependency mark mulle-container no-header`
-//    rename              : `mulle-sde dependency|library set mulle-container include whatever.h`
-//    reorder             : `mulle-sde dependency move mulle-container <up|down>`
-//    toggle #include: `mulle-sde dependency mark mulle-container [no-]import`
-//    toggle public       : `mulle-sde dependency mark mulle-container [no-]public`
-//    toggle optional     : `mulle-sde dependency mark mulle-container [no-]require`
-//    remove for platform : `mulle-sde dependency mark mulle-container no-platform-<uname>`
+//    remove #include: `mulle-sde dependency mark mulle-iovec no-header`
+//    rename              : `mulle-sde dependency|library set mulle-iovec include whatever.h`
+//    reorder             : `mulle-sde dependency move mulle-iovec <up|down>`
+//    toggle #include: `mulle-sde dependency mark mulle-iovec [no-]import`
+//    toggle public       : `mulle-sde dependency mark mulle-iovec [no-]public`
+//    toggle optional     : `mulle-sde dependency mark mulle-iovec [no-]require`
+//    remove for platform : `mulle-sde dependency mark mulle-iovec no-platform-<uname>`
 //        (use `mulle-sourcetree-to-c --unames` to list known values)
-#include <mulle-container/mulle-container.h>   // mulle-container
-
-// To remove the following dependency (headers and library) completely:
-//   `mulle-sde dependency remove mulle-thread`
-// (Use 6194B67B-90E1-4BF1-A973-7A31A7858DB8 instead of mulle-thread, if there are duplicate entries)
-//
-// You can tweak the following #include with these commands:
-//    remove #include: `mulle-sde dependency mark mulle-thread no-header`
-//    rename              : `mulle-sde dependency|library set mulle-thread include whatever.h`
-//    reorder             : `mulle-sde dependency move mulle-thread <up|down>`
-//    toggle #include: `mulle-sde dependency mark mulle-thread [no-]import`
-//    toggle public       : `mulle-sde dependency mark mulle-thread [no-]public`
-//    toggle optional     : `mulle-sde dependency mark mulle-thread [no-]require`
-//    remove for platform : `mulle-sde dependency mark mulle-thread no-platform-<uname>`
-//        (use `mulle-sourcetree-to-c --unames` to list known values)
-#include <mulle-thread/mulle-thread.h>   // mulle-thread
+#include <mulle-iovec/mulle-iovec.h>   // mulle-iovec
 
 #endif

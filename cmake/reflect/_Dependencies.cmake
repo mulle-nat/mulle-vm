@@ -12,219 +12,146 @@ if( MULLE_TRACE_INCLUDE)
 endif()
 
 #
-# Generated from sourcetree: 6B9468BC-52D9-420E-AA5F-9EC2851C3577;mulle-mmap;no-all-load,no-cmake-loader,no-cmake-searchpath,no-import;
-# Disable with : `mulle-sourcetree mark mulle-mmap no-link`
-# Disable for this platform: `mulle-sourcetree mark mulle-mmap no-cmake-platform-${MULLE_UNAME}`
-# Disable for a sdk: `mulle-sourcetree mark mulle-mmap no-cmake-sdk-<name>`
+# Generated from sourcetree: 7ABF793B-4745-4A94-916B-25B03FA02B4A;mulle-core;no-all-load,no-cmake-loader,no-cmake-searchpath,no-import;
+# Disable with : `mulle-sourcetree mark mulle-core no-link`
+# Disable for this platform: `mulle-sourcetree mark mulle-core no-cmake-platform-${MULLE_UNAME}`
+# Disable for a sdk: `mulle-sourcetree mark mulle-core no-cmake-sdk-<name>`
 #
 if( COLLECT_DEPENDENCY_LIBRARIES_AS_NAMES)
-   list( APPEND DEPENDENCY_LIBRARIES "mulle-mmap")
+   list( APPEND DEPENDENCY_LIBRARIES "mulle-core")
 else()
-   if( NOT MULLE__MMAP_LIBRARY)
-      find_library( MULLE__MMAP_LIBRARY NAMES
-         ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-mmap${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}
-         ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-mmap${CMAKE_STATIC_LIBRARY_SUFFIX}
-         mulle-mmap
+   if( NOT MULLE__CORE_LIBRARY)
+      find_library( MULLE__CORE_LIBRARY NAMES
+         ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-core${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}
+         ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-core${CMAKE_STATIC_LIBRARY_SUFFIX}
+         mulle-core
          NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH
       )
-      if( NOT MULLE__MMAP_LIBRARY AND NOT DEPENDENCY_IGNORE_SYSTEM_LIBARIES)
-         find_library( MULLE__MMAP_LIBRARY NAMES
-            ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-mmap${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}
-            ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-mmap${CMAKE_STATIC_LIBRARY_SUFFIX}
-            mulle-mmap
+      if( NOT MULLE__CORE_LIBRARY AND NOT DEPENDENCY_IGNORE_SYSTEM_LIBARIES)
+         find_library( MULLE__CORE_LIBRARY NAMES
+            ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-core${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}
+            ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-core${CMAKE_STATIC_LIBRARY_SUFFIX}
+            mulle-core
          )
       endif()
-      message( STATUS "MULLE__MMAP_LIBRARY is ${MULLE__MMAP_LIBRARY}")
+      message( STATUS "MULLE__CORE_LIBRARY is ${MULLE__CORE_LIBRARY}")
       #
       # The order looks ascending, but due to the way this file is read
       # it ends up being descending, which is what we need.
       #
-      if( MULLE__MMAP_LIBRARY)
+      if( MULLE__CORE_LIBRARY)
          #
-         # Add MULLE__MMAP_LIBRARY to DEPENDENCY_LIBRARIES list.
-         # Disable with: `mulle-sourcetree mark mulle-mmap no-cmake-add`
+         # Add MULLE__CORE_LIBRARY to DEPENDENCY_LIBRARIES list.
+         # Disable with: `mulle-sourcetree mark mulle-core no-cmake-add`
          #
-         list( APPEND DEPENDENCY_LIBRARIES ${MULLE__MMAP_LIBRARY})
+         list( APPEND DEPENDENCY_LIBRARIES ${MULLE__CORE_LIBRARY})
          #
          # Inherit information from dependency.
          # Encompasses: no-cmake-searchpath,no-cmake-dependency,no-cmake-loader
-         # Disable with: `mulle-sourcetree mark mulle-mmap no-cmake-inherit`
+         # Disable with: `mulle-sourcetree mark mulle-core no-cmake-inherit`
          #
          # temporarily expand CMAKE_MODULE_PATH
-         get_filename_component( _TMP_MULLE__MMAP_ROOT "${MULLE__MMAP_LIBRARY}" DIRECTORY)
-         get_filename_component( _TMP_MULLE__MMAP_ROOT "${_TMP_MULLE__MMAP_ROOT}" DIRECTORY)
+         get_filename_component( _TMP_MULLE__CORE_ROOT "${MULLE__CORE_LIBRARY}" DIRECTORY)
+         get_filename_component( _TMP_MULLE__CORE_ROOT "${_TMP_MULLE__CORE_ROOT}" DIRECTORY)
          #
          #
          # Search for "Definitions.cmake" and "DependenciesAndLibraries.cmake" to include.
-         # Disable with: `mulle-sourcetree mark mulle-mmap no-cmake-dependency`
+         # Disable with: `mulle-sourcetree mark mulle-core no-cmake-dependency`
          #
-         foreach( _TMP_MULLE__MMAP_NAME "mulle-mmap")
-            set( _TMP_MULLE__MMAP_DIR "${_TMP_MULLE__MMAP_ROOT}/include/${_TMP_MULLE__MMAP_NAME}/cmake")
+         foreach( _TMP_MULLE__CORE_NAME "mulle-core")
+            set( _TMP_MULLE__CORE_DIR "${_TMP_MULLE__CORE_ROOT}/include/${_TMP_MULLE__CORE_NAME}/cmake")
             # use explicit path to avoid "surprises"
-            if( IS_DIRECTORY "${_TMP_MULLE__MMAP_DIR}")
-               list( INSERT CMAKE_MODULE_PATH 0 "${_TMP_MULLE__MMAP_DIR}")
+            if( IS_DIRECTORY "${_TMP_MULLE__CORE_DIR}")
+               list( INSERT CMAKE_MODULE_PATH 0 "${_TMP_MULLE__CORE_DIR}")
                #
-               include( "${_TMP_MULLE__MMAP_DIR}/DependenciesAndLibraries.cmake" OPTIONAL)
+               include( "${_TMP_MULLE__CORE_DIR}/DependenciesAndLibraries.cmake" OPTIONAL)
                #
-               list( REMOVE_ITEM CMAKE_MODULE_PATH "${_TMP_MULLE__MMAP_DIR}")
+               list( REMOVE_ITEM CMAKE_MODULE_PATH "${_TMP_MULLE__CORE_DIR}")
                #
-               unset( MULLE__MMAP_DEFINITIONS)
-               include( "${_TMP_MULLE__MMAP_DIR}/Definitions.cmake" OPTIONAL)
-               list( APPEND INHERITED_DEFINITIONS ${MULLE__MMAP_DEFINITIONS})
+               unset( MULLE__CORE_DEFINITIONS)
+               include( "${_TMP_MULLE__CORE_DIR}/Definitions.cmake" OPTIONAL)
+               list( APPEND INHERITED_DEFINITIONS ${MULLE__CORE_DEFINITIONS})
                break()
             else()
-               message( STATUS "${_TMP_MULLE__MMAP_DIR} not found")
+               message( STATUS "${_TMP_MULLE__CORE_DIR} not found")
             endif()
          endforeach()
       else()
-         # Disable with: `mulle-sourcetree mark mulle-mmap no-require-link`
-         message( SEND_ERROR "MULLE__MMAP_LIBRARY was not found")
+         # Disable with: `mulle-sourcetree mark mulle-core no-require-link`
+         message( SEND_ERROR "MULLE__CORE_LIBRARY was not found")
       endif()
    endif()
 endif()
 
 
 #
-# Generated from sourcetree: DD7205EE-6AC3-4471-914E-2B046E0FEDA2;mulle-container;no-all-load,no-cmake-loader,no-cmake-searchpath,no-import;
-# Disable with : `mulle-sourcetree mark mulle-container no-link`
-# Disable for this platform: `mulle-sourcetree mark mulle-container no-cmake-platform-${MULLE_UNAME}`
-# Disable for a sdk: `mulle-sourcetree mark mulle-container no-cmake-sdk-<name>`
+# Generated from sourcetree: A6FA4535-6F62-4F81-BD28-A961DA7BB787;mulle-iovec;no-all-load,no-cmake-loader,no-cmake-searchpath,no-import;
+# Disable with : `mulle-sourcetree mark mulle-iovec no-link`
+# Disable for this platform: `mulle-sourcetree mark mulle-iovec no-cmake-platform-${MULLE_UNAME}`
+# Disable for a sdk: `mulle-sourcetree mark mulle-iovec no-cmake-sdk-<name>`
 #
 if( COLLECT_DEPENDENCY_LIBRARIES_AS_NAMES)
-   list( APPEND DEPENDENCY_LIBRARIES "mulle-container")
+   list( APPEND DEPENDENCY_LIBRARIES "mulle-iovec")
 else()
-   if( NOT MULLE__CONTAINER_LIBRARY)
-      find_library( MULLE__CONTAINER_LIBRARY NAMES
-         ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-container${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}
-         ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-container${CMAKE_STATIC_LIBRARY_SUFFIX}
-         mulle-container
+   if( NOT MULLE__IOVEC_LIBRARY)
+      find_library( MULLE__IOVEC_LIBRARY NAMES
+         ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-iovec${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}
+         ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-iovec${CMAKE_STATIC_LIBRARY_SUFFIX}
+         mulle-iovec
          NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH
       )
-      if( NOT MULLE__CONTAINER_LIBRARY AND NOT DEPENDENCY_IGNORE_SYSTEM_LIBARIES)
-         find_library( MULLE__CONTAINER_LIBRARY NAMES
-            ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-container${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}
-            ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-container${CMAKE_STATIC_LIBRARY_SUFFIX}
-            mulle-container
+      if( NOT MULLE__IOVEC_LIBRARY AND NOT DEPENDENCY_IGNORE_SYSTEM_LIBARIES)
+         find_library( MULLE__IOVEC_LIBRARY NAMES
+            ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-iovec${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}
+            ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-iovec${CMAKE_STATIC_LIBRARY_SUFFIX}
+            mulle-iovec
          )
       endif()
-      message( STATUS "MULLE__CONTAINER_LIBRARY is ${MULLE__CONTAINER_LIBRARY}")
+      message( STATUS "MULLE__IOVEC_LIBRARY is ${MULLE__IOVEC_LIBRARY}")
       #
       # The order looks ascending, but due to the way this file is read
       # it ends up being descending, which is what we need.
       #
-      if( MULLE__CONTAINER_LIBRARY)
+      if( MULLE__IOVEC_LIBRARY)
          #
-         # Add MULLE__CONTAINER_LIBRARY to DEPENDENCY_LIBRARIES list.
-         # Disable with: `mulle-sourcetree mark mulle-container no-cmake-add`
+         # Add MULLE__IOVEC_LIBRARY to DEPENDENCY_LIBRARIES list.
+         # Disable with: `mulle-sourcetree mark mulle-iovec no-cmake-add`
          #
-         list( APPEND DEPENDENCY_LIBRARIES ${MULLE__CONTAINER_LIBRARY})
-         #
-         # Inherit information from dependency.
-         # Encompasses: no-cmake-searchpath,no-cmake-dependency,no-cmake-loader
-         # Disable with: `mulle-sourcetree mark mulle-container no-cmake-inherit`
-         #
-         # temporarily expand CMAKE_MODULE_PATH
-         get_filename_component( _TMP_MULLE__CONTAINER_ROOT "${MULLE__CONTAINER_LIBRARY}" DIRECTORY)
-         get_filename_component( _TMP_MULLE__CONTAINER_ROOT "${_TMP_MULLE__CONTAINER_ROOT}" DIRECTORY)
-         #
-         #
-         # Search for "Definitions.cmake" and "DependenciesAndLibraries.cmake" to include.
-         # Disable with: `mulle-sourcetree mark mulle-container no-cmake-dependency`
-         #
-         foreach( _TMP_MULLE__CONTAINER_NAME "mulle-container")
-            set( _TMP_MULLE__CONTAINER_DIR "${_TMP_MULLE__CONTAINER_ROOT}/include/${_TMP_MULLE__CONTAINER_NAME}/cmake")
-            # use explicit path to avoid "surprises"
-            if( IS_DIRECTORY "${_TMP_MULLE__CONTAINER_DIR}")
-               list( INSERT CMAKE_MODULE_PATH 0 "${_TMP_MULLE__CONTAINER_DIR}")
-               #
-               include( "${_TMP_MULLE__CONTAINER_DIR}/DependenciesAndLibraries.cmake" OPTIONAL)
-               #
-               list( REMOVE_ITEM CMAKE_MODULE_PATH "${_TMP_MULLE__CONTAINER_DIR}")
-               #
-               unset( MULLE__CONTAINER_DEFINITIONS)
-               include( "${_TMP_MULLE__CONTAINER_DIR}/Definitions.cmake" OPTIONAL)
-               list( APPEND INHERITED_DEFINITIONS ${MULLE__CONTAINER_DEFINITIONS})
-               break()
-            else()
-               message( STATUS "${_TMP_MULLE__CONTAINER_DIR} not found")
-            endif()
-         endforeach()
-      else()
-         # Disable with: `mulle-sourcetree mark mulle-container no-require-link`
-         message( SEND_ERROR "MULLE__CONTAINER_LIBRARY was not found")
-      endif()
-   endif()
-endif()
-
-
-#
-# Generated from sourcetree: 6194B67B-90E1-4BF1-A973-7A31A7858DB8;mulle-thread;no-all-load,no-cmake-loader,no-cmake-searchpath,no-import;
-# Disable with : `mulle-sourcetree mark mulle-thread no-link`
-# Disable for this platform: `mulle-sourcetree mark mulle-thread no-cmake-platform-${MULLE_UNAME}`
-# Disable for a sdk: `mulle-sourcetree mark mulle-thread no-cmake-sdk-<name>`
-#
-if( COLLECT_DEPENDENCY_LIBRARIES_AS_NAMES)
-   list( APPEND DEPENDENCY_LIBRARIES "mulle-thread")
-else()
-   if( NOT MULLE__THREAD_LIBRARY)
-      find_library( MULLE__THREAD_LIBRARY NAMES
-         ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-thread${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}
-         ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-thread${CMAKE_STATIC_LIBRARY_SUFFIX}
-         mulle-thread
-         NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH
-      )
-      if( NOT MULLE__THREAD_LIBRARY AND NOT DEPENDENCY_IGNORE_SYSTEM_LIBARIES)
-         find_library( MULLE__THREAD_LIBRARY NAMES
-            ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-thread${CMAKE_DEBUG_POSTFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}
-            ${CMAKE_STATIC_LIBRARY_PREFIX}mulle-thread${CMAKE_STATIC_LIBRARY_SUFFIX}
-            mulle-thread
-         )
-      endif()
-      message( STATUS "MULLE__THREAD_LIBRARY is ${MULLE__THREAD_LIBRARY}")
-      #
-      # The order looks ascending, but due to the way this file is read
-      # it ends up being descending, which is what we need.
-      #
-      if( MULLE__THREAD_LIBRARY)
-         #
-         # Add MULLE__THREAD_LIBRARY to DEPENDENCY_LIBRARIES list.
-         # Disable with: `mulle-sourcetree mark mulle-thread no-cmake-add`
-         #
-         list( APPEND DEPENDENCY_LIBRARIES ${MULLE__THREAD_LIBRARY})
+         list( APPEND DEPENDENCY_LIBRARIES ${MULLE__IOVEC_LIBRARY})
          #
          # Inherit information from dependency.
          # Encompasses: no-cmake-searchpath,no-cmake-dependency,no-cmake-loader
-         # Disable with: `mulle-sourcetree mark mulle-thread no-cmake-inherit`
+         # Disable with: `mulle-sourcetree mark mulle-iovec no-cmake-inherit`
          #
          # temporarily expand CMAKE_MODULE_PATH
-         get_filename_component( _TMP_MULLE__THREAD_ROOT "${MULLE__THREAD_LIBRARY}" DIRECTORY)
-         get_filename_component( _TMP_MULLE__THREAD_ROOT "${_TMP_MULLE__THREAD_ROOT}" DIRECTORY)
+         get_filename_component( _TMP_MULLE__IOVEC_ROOT "${MULLE__IOVEC_LIBRARY}" DIRECTORY)
+         get_filename_component( _TMP_MULLE__IOVEC_ROOT "${_TMP_MULLE__IOVEC_ROOT}" DIRECTORY)
          #
          #
          # Search for "Definitions.cmake" and "DependenciesAndLibraries.cmake" to include.
-         # Disable with: `mulle-sourcetree mark mulle-thread no-cmake-dependency`
+         # Disable with: `mulle-sourcetree mark mulle-iovec no-cmake-dependency`
          #
-         foreach( _TMP_MULLE__THREAD_NAME "mulle-thread")
-            set( _TMP_MULLE__THREAD_DIR "${_TMP_MULLE__THREAD_ROOT}/include/${_TMP_MULLE__THREAD_NAME}/cmake")
+         foreach( _TMP_MULLE__IOVEC_NAME "mulle-iovec")
+            set( _TMP_MULLE__IOVEC_DIR "${_TMP_MULLE__IOVEC_ROOT}/include/${_TMP_MULLE__IOVEC_NAME}/cmake")
             # use explicit path to avoid "surprises"
-            if( IS_DIRECTORY "${_TMP_MULLE__THREAD_DIR}")
-               list( INSERT CMAKE_MODULE_PATH 0 "${_TMP_MULLE__THREAD_DIR}")
+            if( IS_DIRECTORY "${_TMP_MULLE__IOVEC_DIR}")
+               list( INSERT CMAKE_MODULE_PATH 0 "${_TMP_MULLE__IOVEC_DIR}")
                #
-               include( "${_TMP_MULLE__THREAD_DIR}/DependenciesAndLibraries.cmake" OPTIONAL)
+               include( "${_TMP_MULLE__IOVEC_DIR}/DependenciesAndLibraries.cmake" OPTIONAL)
                #
-               list( REMOVE_ITEM CMAKE_MODULE_PATH "${_TMP_MULLE__THREAD_DIR}")
+               list( REMOVE_ITEM CMAKE_MODULE_PATH "${_TMP_MULLE__IOVEC_DIR}")
                #
-               unset( MULLE__THREAD_DEFINITIONS)
-               include( "${_TMP_MULLE__THREAD_DIR}/Definitions.cmake" OPTIONAL)
-               list( APPEND INHERITED_DEFINITIONS ${MULLE__THREAD_DEFINITIONS})
+               unset( MULLE__IOVEC_DEFINITIONS)
+               include( "${_TMP_MULLE__IOVEC_DIR}/Definitions.cmake" OPTIONAL)
+               list( APPEND INHERITED_DEFINITIONS ${MULLE__IOVEC_DEFINITIONS})
                break()
             else()
-               message( STATUS "${_TMP_MULLE__THREAD_DIR} not found")
+               message( STATUS "${_TMP_MULLE__IOVEC_DIR} not found")
             endif()
          endforeach()
       else()
-         # Disable with: `mulle-sourcetree mark mulle-thread no-require-link`
-         message( SEND_ERROR "MULLE__THREAD_LIBRARY was not found")
+         # Disable with: `mulle-sourcetree mark mulle-iovec no-require-link`
+         message( SEND_ERROR "MULLE__IOVEC_LIBRARY was not found")
       endif()
    endif()
 endif()

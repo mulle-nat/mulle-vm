@@ -58,12 +58,14 @@ static int  mulle_memchr_callback( struct mulle_data data,
 {
    struct memchr_info  *info = userinfo;
    char                *found;
+   uintptr_t           vm_address;  // debugs easier with local var
 
    found = mulle_memchr( data.bytes, info->c, data.length);
    if( ! found)
       return( 0);
 
-   info->vm_address = vm_range.location + (found - (char *) data.bytes);
+   vm_address       = vm_range.location + (found - (char *) data.bytes);
+   info->vm_address = vm_address;
    return( 1);
 }
 
@@ -74,12 +76,14 @@ static int  mulle_memrchr_callback( struct mulle_data data,
 {
    struct memchr_info  *info = userinfo;
    char                *found;
+   uintptr_t           vm_address;  // debugs easier with local var
 
    found = mulle_memrchr( data.bytes, info->c, data.length);
    if( ! found)
       return( 0);
 
-   info->vm_address = vm_range.location + (found - (char *) data.bytes);
+   vm_address       = vm_range.location + (found - (char *) data.bytes);
+   info->vm_address = vm_address;
    return( 1);
 }
 
@@ -122,12 +126,14 @@ static int  mulle_memmatch_callback( struct mulle_data data,
 {
    struct memmatch_info  *info = userinfo;
    char                  *found;
+   uintptr_t             vm_address;  // debugs easier with local var
 
    found = mulle_memmatch( data.bytes, data.length, info->match);
    if( ! found)
       return( 0);
 
-   info->vm_address = vm_range.location + (found - (char *) data.bytes);
+   vm_address       = vm_range.location + (found - (char *) data.bytes);
+   info->vm_address = vm_address;
    return( 1);
 }
 
@@ -138,12 +144,14 @@ static int  mulle_memrmatch_callback( struct mulle_data data,
 {
    struct memmatch_info  *info = userinfo;
    char                  *found;
+   uintptr_t             vm_address;  // debugs easier with local var
 
    found = mulle_memrmatch( data.bytes, data.length, info->match);
    if( ! found)
       return( 0);
 
-   info->vm_address = vm_range.location + (found - (char *) data.bytes);
+   vm_address       = vm_range.location + (found - (char *) data.bytes);
+   info->vm_address = vm_address;
    return( 1);
 }
 

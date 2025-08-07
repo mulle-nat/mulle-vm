@@ -91,8 +91,8 @@ void   mulle_vm_init( struct mulle_vm *vm,
    mulle_pointerarray_init( &vm->freed_ospages,
                             0,
                             allocator);
-   assert( (! config->pagesize || config->pagesize == mulle_pow2round( config->pagesize)) && "VM pagesize corrupted");
-   assert( config->skew <= 100 && "VM skew must be >= 0 <= 100");
+   assert( (! config->pagesize || config->pagesize == mulle_pow2round( config->pagesize)) && "mulle-vm: VM pagesize corrupted");
+   assert( config->skew <= 100 && "mulle-vm: VM skew must be >= 0 <= 100");
 
    vm->config = *config;
    // AI documented it like this, LOL
@@ -155,12 +155,13 @@ static inline void   mulle_vm_assert( struct mulle_vm *vm)
    mulle_vm_mapping_for( vm, info)
    {
       page       = info->page;
+      assert( page != NULL && "mulle-vm: mapping with no page");
       vm_address = info->address;
       ++i;
 
       // output vm range, size of pages, and hole in front and back
 #ifdef DEBUG_VERBOSE
-      fprintf( stderr, "%3u: %2td-%-2td \"%.*s\"\n",
+      mulle_fprintf( stderr, "%3u: %2td-%-2td \"%.*s\"\n",
                                i,
                                vm_address,
                                vm_address + page->used.length,
@@ -168,7 +169,7 @@ static inline void   mulle_vm_assert( struct mulle_vm *vm)
                                (char *) mulle_vm_page_address( page, 0));
 #endif
 #ifndef NDEBUG
-      assert( info->address == expect);
+      assert( info->address == expect && "mulle-vm: miscalculated vm_address of page");
       expect += info->page->used.length;
 #endif
    }
@@ -185,15 +186,15 @@ static inline void   mulle_vm_assert_page( struct mulle_vm *vm, struct mulle_vm_
       return;
 
    // corruption check
-   assert( (intptr_t) _mulle_atomic_pointer_read( &page->retain_count) >= 0 && "VM page is over released");
+   assert( (intptr_t) _mulle_atomic_pointer_read( &page->retain_count) >= 0 && "mulle-vm: VM page is over released");
 
-   assert( page->bytes != NULL && "VM page has no backing memory");
+   assert( page->bytes != NULL && "mulle-vm: VM page has no backing memory");
 
-   assert( page->used.location + page->used.length <= page->size && "VM page is corrupted");
+   assert( page->used.location + page->used.length <= page->size && "mulle-vm: VM page is corrupted");
 
-   assert( (page->size % mulle_vm_get_pagesize(vm)) == 0 && "VM page is not a multiple of pagesize");
+   assert( (page->size % mulle_vm_get_pagesize(vm)) == 0 && "mulle-vm: VM page is not a multiple of pagesize");
 
-   assert(((uintptr_t) page->bytes % mulle_vm_get_pagesize( vm)) == 0 && "bytes of VM page are not size aligned");
+   assert(((uintptr_t) page->bytes % mulle_vm_get_pagesize( vm)) == 0 && "mulle-vm: bytes of VM page are not size aligned");
    // pages must not have holes
 }
 
@@ -345,6 +346,7 @@ static void   _mulle_vm_reset_freed_ospages( struct mulle_vm *vm)
 {
    void     *page;
    size_t   pagesize;
+   int      rval;
 
    pagesize = mulle_vm_get_pagesize( vm);
    mulle_pointerarray_for( &vm->freed_ospages, page)
@@ -353,7 +355,8 @@ static void   _mulle_vm_reset_freed_ospages( struct mulle_vm *vm)
       if( rval)
       {
       // what to do ?
-         fprintf( stderr, "mulle-vm: page %p wrongly freed by mishaved thread ? (%d)\n", mem, rval);
+         fprintf( stderr, "mulle-vm: page %p wrongly freed by mishaved thread ? (%d)\n",
+                           page, rval);
 #ifdef DEBUG
          abort();
 #endif
@@ -633,6 +636,9 @@ static void   __mulle_vm_add_page_with_address( struct mulle_vm *vm,
 }
 
 
+#ifndef MULLE_TEST
+static
+#endif
 MULLE_C_NONNULL_FIRST
 void   _mulle_vm_add_page( struct mulle_vm *vm, struct mulle_vm_page *page)
 {
@@ -640,6 +646,21 @@ void   _mulle_vm_add_page( struct mulle_vm *vm, struct mulle_vm_page *page)
 
    vm_address = mulle_vm_get_length( vm);
    __mulle_vm_add_page_with_address( vm, page, vm_address);
+}
+
+
+MULLE_C_NONNULL_FIRST_SECOND
+void   _mulle_vm_append_ospages( struct mulle_vm *vm,
+                                 void *pages,
+                                 size_t length)
+{
+   size_t                 size;
+   struct mulle_vm_page   *page;
+
+   size = round_up_to_pagesize( length, mulle_vm_get_pagesize( vm));
+   page = mulle_vm_page_alloc();
+   mulle_vm_page_init( page, pages, mulle_range_make( 0, length), size);
+   _mulle_vm_add_page( vm, page);
 }
 
 
@@ -1373,9 +1394,9 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
    }
 
    page_range      = mulle_vm_mapping_get_range( startinfo);
-   intersection    = mulle_range_intersection( range, page_range);
+   intersection    = mulle_range_intersection( page_range, range);
    data            = mulle_vm_mapping_get_data_in_range( startinfo, intersection);
-   rval            = (*callback)( data, page_range, userinfo);
+   rval            = (*callback)( data, intersection, userinfo);
 
    // preset errno to something, that callback then can change
    errno = ENOENT;
@@ -1397,7 +1418,7 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
    assert( endinfo != startinfo);  // just to think less here :)
 
    page_range      = mulle_vm_mapping_get_range( endinfo);
-   intersection    = mulle_range_intersection( range, page_range);
+   intersection    = mulle_range_intersection( page_range, range);
    data            = mulle_vm_mapping_get_data_in_range( endinfo, intersection);
 
    rval            = (*callback)( data, intersection, userinfo);
