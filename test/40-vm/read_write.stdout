@@ -1,0 +1,87 @@
+Tests run test/40-vm/read_write.c (test)
+Let cmake/ninja do a Debug/dynamic build of mulle-vm ...
+mulle-test error: FAILED: "test/40-vm/read_write.c" produced different output
+DIFF: (test/.mulle/var/peschel/nat/test/tmp/read_write-6c45e4cf-ac3f-45ec-aec9-4f5f6d1f6236.stdout vs. read_write.stdout)
+== after init ==							      |	Tests run test/40-vm/read_write.c (test)
+0 pages, 0 bytes							      |	Let cmake/ninja do a Debug/dynamic build of mulle-vm ...
+									      |	mulle-test error: FAILED: "test/40-vm/read_write.c" produced different output
+== build from 0 ==							      |	DIFF: (test/.mulle/var/peschel/nat/test/tmp/read_write-6c45e4cf-ac3f-45ec-aec
+2 pages, 12 bytes							      <
+abcdefghijkl								      <
+VM:									      <
+	 0-12 (16-[1,3])						      <
+									      <
+== write in the middle (overwrite) ==					      <
+2 pages, 12 bytes							      <
+abcdefghijkl								      <
+VM:									      <
+	 0-12 (16-[1,3])						      <
+									      <
+== write at start (overwrite) ==					      <
+2 pages, 12 bytes							      <
+abcdefghijkl								      <
+VM:									      <
+	 0-12 (16-[1,3])						      <
+									      <
+== write at end (overwrite) ==						      <
+2 pages, 12 bytes							      <
+abcdefghijkl								      <
+VM:									      <
+	 0-12 (16-[1,3])						      <
+									      <
+== write beyond end (extend) ==						      <
+2 pages, 12 bytes							      <
+abcdefghijkl								      <
+VM:									      <
+	 0-12 (16-[1,3])						      <
+									      <
+== write in hole (extend) ==						      <
+2 pages, 12 bytes							      <
+abcdefghijkl								      <
+VM:									      <
+	 0-12 (16-[1,3])						      <
+									      <
+mulle-test error: test/40-vm/read_write.c
+OUTPUT:
+== after init ==
+0 pages, 0 bytes
+
+== build from 0 ==
+2 pages, 12 bytes
+abcdefghijkl
+VM:
+	 0-12 (16-[1,3])
+
+== write in the middle (overwrite) ==
+2 pages, 12 bytes
+abcdefghijkl
+VM:
+	 0-12 (16-[1,3])
+
+== write at start (overwrite) ==
+2 pages, 12 bytes
+abcdefghijkl
+VM:
+	 0-12 (16-[1,3])
+
+== write at end (overwrite) ==
+2 pages, 12 bytes
+abcdefghijkl
+VM:
+	 0-12 (16-[1,3])
+
+== write beyond end (extend) ==
+2 pages, 12 bytes
+abcdefghijkl
+VM:
+	 0-12 (16-[1,3])
+
+== write in hole (extend) ==
+2 pages, 12 bytes
+abcdefghijkl
+VM:
+	 0-12 (16-[1,3])
+
+MULLE_TESTALLOCATOR=3 /usr/bin/gdb /home/src/srcO/mulle-core/mulle-vm/test/40-vm/read_write.exe
+run 
+mulle-test fatal error: Test "test/read_write" failed (3)

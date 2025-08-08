@@ -1254,12 +1254,12 @@ void *   _mulle_vm_io( struct mulle_vm      *vm,
    offset = (size_t)((uintptr_t) range.location - info->address);
 
    // Check if the read fits entirely inside the found page
-   if( offset + range.length <= info->page->used.length)
+   if( ! write_flag && (offset + range.length <= info->page->used.length))
    {
       return( (void *) ((uint8_t *) info->page->bytes + info->page->used.location + offset));
    }
 
-   // The read spans multiple pages, buffer must be provided
+   // The buffer must be provided (multispan page read, or write)
    if( ! buffer)
    {
       errno = ENOSPC;
