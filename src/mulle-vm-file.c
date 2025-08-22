@@ -82,17 +82,18 @@ int   mulle_vm_writev_contents( struct mulle_vm *vm, int fd)
 {
    unsigned int             n;
    unsigned int             i;
-   struct mulle_vm_mapping  *mapping;
+   struct mulle_vm_node     *node;
    int                      rval;
 
-   n = mulle_structarray_get_count( &vm->mappings);
+   n = _mulle__rbtree_get_count( (struct mulle__rbtree *) &vm->tree);
    mulle_alloca_do( ios, struct mulle_iovec, n)
    {
-      for( i = 0; i < n; i++)
+      i = 0;
+      mulle_vm_tree_for( &vm->tree, node)
       {
-         mapping = _mulle_structarray_get( &vm->mappings, i);
-         ios[ i].iov_base = mulle_vm_page_address( mapping->page, 0);
-         ios[ i].iov_len  = mulle_vm_page_get_length( mapping->page);
+         ios[ i].iov_base = mulle_vm_page_address( node->page, 0);
+         ios[ i].iov_len  = mulle_vm_page_get_length( node->page);
+         i++;
       }
 
       rval = mulle_writev( fd, ios, n);

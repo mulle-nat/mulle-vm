@@ -43,7 +43,8 @@ typedef void   mulle_vm_ospage;
 //
 // used by "copy", we share pages with another mulle_vm_page (i.e.) two
 // references. If we ever write to the copied page, we need to copy the
-// bytes.
+// bytes. If we want to model "empty" space, we could allow bytes to be
+// NULL but so far we don't.
 //
 struct mulle_vm_page
 {
@@ -157,27 +158,51 @@ MULLE__VM_GLOBAL
 void   mulle_vm_page_free( struct mulle_vm_page *page);
 
 MULLE__VM_GLOBAL
-MULLE_C_NONNULL_FIRST_FOURTH
+MULLE_C_NONNULL_FIRST_THIRD
 int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
-                                  uintptr_t address,
-                                  struct mulle_range range,
-                                  void *bytes);
-
+                                  uintptr_t offset,
+                                  void *bytes,
+                                  size_t length);
 static inline
-MULLE_C_NONNULL_FOURTH
+MULLE_C_NONNULL_THIRD
 int  mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
-                                 uintptr_t address,
-                                 struct mulle_range range,
-                                 void *bytes)
+                                  uintptr_t offset,
+                                  void *bytes,
+                                  size_t length)
 {
    if( ! page)
       return( -1);
-   return( _mulle_vm_page_insert_bytes( page, address, range, bytes));
+   return( _mulle_vm_page_insert_bytes( page, offset, bytes, length));
 }
 
 
 MULLE__VM_GLOBAL
 MULLE_C_NONNULL_FIRST_SECOND
 int   _mulle_vm_page_join( struct mulle_vm_page *a, struct mulle_vm_page *b);
+
+// Static inline retain/release functions for page reference counting
+static inline struct mulle_vm_page *
+   mulle_vm_page_retain( struct mulle_vm_page *page)
+{
+   if( ! page)
+      return( NULL);
+   _mulle_atomic_pointer_increment( &page->retain_count);
+   return( page);
+}
+
+// MEMO: only tests should call this...
+static inline void
+   mulle_vm_page_release( struct mulle_vm_page *page)
+{
+   if( ! page)
+      return;
+   if( ! _mulle_atomic_pointer_decrement( &page->retain_count))
+   {
+      // Page is no longer referenced, but we need VM context to properly free it
+      // This is a simple version that just frees the page structure
+      // Full implementation should free the OS pages too
+      mulle_vm_page_free( page);
+   }
+}
 
 #endif

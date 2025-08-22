@@ -38,4 +38,4 @@
 #include <mulle-vararg/mulle-vararg.h>
 #include <mulle-vm/mulle-vm.h>
 
-#endif /* mulle__vm__test_include_h__ */
+#endif /*  */

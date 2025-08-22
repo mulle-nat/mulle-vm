@@ -64,5 +64,6 @@ src/mulle-vm-file.h
 src/mulle-vm.h
 src/mulle-vm-page.h
 src/mulle-vm-stdlib.h
+src/mulle-vm-tree.h
 )
 

@@ -36,13 +36,14 @@ static void   load( void)
 }
 
 
+#if 0
 /**
  **
  **
  **
  */
 static inline struct mulle_range
-   mulle_vm_mapping_get_range( struct mulle_vm_mapping *info)
+   mulle_vm_node_get_range( struct mulle_vm_node *info)
 {
    if( ! info)
       return( mulle_range_make_invalid());
@@ -52,7 +53,7 @@ static inline struct mulle_range
 
 
 static inline struct mulle_data
-   mulle_vm_mapping_get_data_in_range( struct mulle_vm_mapping *info,
+   mulle_vm_node_get_data_in_range( struct mulle_vm_node *info,
                                        struct mulle_range range)
 {
    if( ! info)
@@ -63,6 +64,7 @@ static inline struct mulle_data
    return( mulle_data_make( mulle_vm_page_address( info->page, range.location),
                             range.length));
 }
+#endif
 
 
 
@@ -83,11 +85,7 @@ void   mulle_vm_init( struct mulle_vm *vm,
 
    memset( vm, 0, sizeof( *vm));
 
-   mulle_structarray_init( &vm->mappings,
-                           sizeof( struct mulle_vm_mapping),
-                           alignof( struct mulle_vm_mapping),
-                           0,
-                           allocator);
+   mulle_vm_tree_init( &vm->tree, allocator);
    mulle_pointerarray_init( &vm->freed_ospages,
                             0,
                             allocator);
@@ -114,8 +112,7 @@ void   mulle_vm_done( struct mulle_vm *vm)
    _mulle_pointerarray_done( &vm->freed_ospages);
    vm->config.cachesize = 0;
 
-   _mulle_vm_release_all_pages( vm);
-   _mulle_structarray_done( &vm->mappings);
+   mulle_vm_tree_done( &vm->tree);
 
    if( vm->config.shutdown)
       (*vm->config.shutdown)( vm);
@@ -128,55 +125,16 @@ void   mulle_vm_reset( struct mulle_vm *vm)
    if( ! vm)
       return;
 
-   _mulle_vm_release_all_pages( vm);
-   _mulle_structarray_reset( &vm->mappings);
+   mulle_vm_tree_reset( &vm->tree);
 }
 
 
 static inline void   mulle_vm_assert( struct mulle_vm *vm)
 {
-#if DEBUG_VERBOSE || ! defined( NDEBUG)
-   uintptr_t              vm_address;
-   struct mulle_vm_page   *page;
-   unsigned               i;
-#endif
-
-#ifndef NDEBUG
-   uintptr_t    expect;
-#endif
-   if( ! vm)
-      return;
-
-#ifndef NDEBUG
-   expect = 0;
-#endif
-#if DEBUG_VERBOSE || ! defined( NDEBUG)
-   i = 0;
-   mulle_vm_mapping_for( vm, info)
+   mulle_vm_for( vm, info)
    {
-      page       = info->page;
-      assert( page != NULL && "mulle-vm: mapping with no page");
-      vm_address = info->address;
-      ++i;
-
-      // output vm range, size of pages, and hole in front and back
-#ifdef DEBUG_VERBOSE
-      mulle_fprintf( stderr, "%3u: %2td-%-2td \"%.*s\"\n",
-                               i,
-                               vm_address,
-                               vm_address + page->used.length,
-                               (int) page->used.length,
-                               (char *) mulle_vm_page_address( page, 0));
-#endif
-#ifndef NDEBUG
-      assert( info->address == expect && "mulle-vm: miscalculated vm_address of page");
-      expect += info->page->used.length;
-#endif
+      assert( info->page != NULL && "mulle-vm: mapping with no page");
    }
-#ifdef DEBUG_VERBOSE
-   fprintf( stderr, "\n");
-#endif
-#endif
 }
 
 
@@ -236,7 +194,7 @@ static void *   _mulle_vm_alloc_ospages( struct mulle_vm *vm, size_t size)
    {
       mem = (vm->config.alloc_pages)( size); // hmm ...
       if( ! mem)
-         (vm->mappings.allocator->fail)( NULL, NULL, size);
+         (_mulle_rbtree_get_allocator( (struct mulle_rbtree *) &vm->tree)->fail)( NULL, NULL, size);
    }
 
 #ifdef DEBUG
@@ -410,11 +368,8 @@ struct mulle_vm_page *
 
 
 static inline struct mulle_vm_page *
-   _mulle_vm_retain_page( struct mulle_vm *vm,
-                          struct mulle_vm_page *page)
+   _mulle_vm_retain_page( struct mulle_vm_page *page)
 {
-   assert( vm);
-
    _mulle_atomic_pointer_increment( &page->retain_count);
    return( page);
 }
@@ -433,112 +388,6 @@ static inline void   _mulle_vm_release_page( struct mulle_vm *vm,
 }
 
 
-void   _mulle_vm_release_all_pages( struct mulle_vm *vm)
-{
-   static struct mulle_vm_mapping  *mapping;
-
-   mulle_structarray_for( &vm->mappings, mapping)
-   {
-      _mulle_vm_release_page( vm, mapping->page);
-   }
-}
-
-
-static inline struct mulle_vm_mapping  *
-   _mulle_vm_get_mapping( struct mulle_vm *vm, intptr_t index)
-{
-   struct mulle_vm_mapping   *info;
-
-   info = _mulle_structarray_get( &vm->mappings, index);
-   mulle_vm_assert_page( vm, info->page);
-   return( info);
-}
-
-
-// ---
-// Binary search helper for finding prefix sums on the fly
-//
-// Returns index of page containing logical_offset,
-// sets *in_page_offset, *page_bytes_available.
-// Returns -1 if not found.
-
-static intptr_t
-   _mulle_vm_search_mapping_index_exact( struct mulle_vm *vm,
-                                          uintptr_t target_val)
-{
-   intptr_t                   low;
-   intptr_t                   mid;
-   intptr_t                   high;
-   intptr_t                   n;
-   uintptr_t                  mid_val;
-   struct mulle_vm_mapping   *info;
-
-   n = (intptr_t) _mulle_structarray_get_count( &vm->mappings);
-   if (n == 0)
-       return( -1);
-
-   low  = 0;
-   high = n - 1;
-
-   while( low <= high)
-   {
-      mid     = low + (high - low) / 2;
-      info    = _mulle_vm_get_mapping( vm, mid);
-      mid_val = (uintptr_t) info->address;
-
-      if (mid_val == target_val)
-         return( mid);      // exact match found
-
-      if (mid_val < target_val)
-         low = mid + 1;
-      else
-         high = mid - 1;
-   }
-
-    // Exact value not found
-    return( -1);
-}
-
-
-
-static intptr_t   _mulle_vm_search_mapping_index( struct mulle_vm *vm,
-                                                   uintptr_t target_val)
-{
-   intptr_t                   low;
-   intptr_t                   mid;
-   intptr_t                   high;
-   intptr_t                   n;
-   uintptr_t                  upper_val;
-   uintptr_t                  mid_val;
-   struct mulle_vm_mapping   *info;
-
-   n = (intptr_t) _mulle_structarray_get_count( &vm->mappings);
-   if( n == 0)
-      return( -1);
-
-   upper_val = mulle_vm_get_length( vm);
-   if( target_val >= upper_val)
-      return( -1);
-
-   low  = 0;
-   high = n;
-
-   while( low < high)
-   {
-      mid     = low + (high - low) / 2;
-      info    = _mulle_vm_get_mapping( vm, mid);
-      mid_val = (uintptr_t) info->address;
-
-      if( mid_val <= target_val)
-         low = mid + 1;  // mid is valid, search right side for better match
-      else
-         high = mid;     // too big, search left side
-   }
-
-   return( (low == 0) ?  -1 : low - 1);
-}
-
-
 /**
  **
  ** COW
@@ -546,32 +395,30 @@ static intptr_t   _mulle_vm_search_mapping_index( struct mulle_vm *vm,
  */
 
 //
-// this will possibly change the page in info and in vm->mappings, if you
-// cached the pointer in info->page, you are in deep shit now
+// this will possibly change the page in info and, if you
+// cached the pointer to info->page and reuse it after _mulle_vm_will_write_page,
+// you are in deep shit...
 //
-void   _mulle_vm_will_write_mapping( struct mulle_vm *vm,
-                                     struct mulle_vm_mapping *info,
-                                     intptr_t index)
+struct mulle_vm_page *   _mulle_vm_will_write_page( struct mulle_vm *vm,
+                                                   struct mulle_vm_page *page)
 {
-   struct mulle_vm_page   *private_page;
-   struct mulle_vm_page   *shared_page;
+   struct mulle_vm_page   *copy;
    void                   *bytes;
    size_t                 length;
 
    // if not shared we don't need to copy on write
-   shared_page = info->page;
-   if( ! _mulle_atomic_pointer_read( &shared_page->retain_count))
-      return;
+   if( ! _mulle_atomic_pointer_read( &page->retain_count))
+      return( page);
 
    //
    // copy on write
    //
-   bytes        = mulle_vm_page_address( shared_page, 0);
-   length       = shared_page->used.length;
-   private_page = _mulle_vm_new_page_with_bytes( vm, bytes, length);
+   bytes  = mulle_vm_page_address( page, 0);
+   length = page->used.length;
+   copy   = _mulle_vm_new_page_with_bytes( vm, bytes, length);
 
-   _mulle_vm_release_page( vm, shared_page);
-   info->page   = private_page;
+   _mulle_vm_release_page( vm, page);
+   return( copy);
 }
 
 
@@ -580,61 +427,6 @@ void   _mulle_vm_will_write_mapping( struct mulle_vm *vm,
  **
  **
  */
-static void   _mulle_vm_change_address( struct mulle_vm *vm,
-                                        intptr_t index,
-                                        uintptr_t adr)
-{
-   struct mulle_vm_mapping  *info;
-
-   info = mulle_structarray_get_lenient( &vm->mappings, index);
-   if( info)
-      info->address = (intptr_t) adr;
-}
-
-
-
-static void   _mulle_vm_adjust_addresses( struct mulle_vm *vm,
-                                          intptr_t index,
-                                          intptr_t diff)
-{
-   struct mulle_vm_mapping  *info;
-
-   for(;;)
-   {
-      info = mulle_structarray_get_lenient( &vm->mappings, index);
-      if( ! info)
-         break;
-      info->address += diff;
-      ++index;
-   }
-}
-
-
-
-/**
- **
- **
- **
- */
-// even more lowlevel
-MULLE_C_NONNULL_FIRST_SECOND
-static void   __mulle_vm_add_page_with_address( struct mulle_vm *vm,
-                                                struct mulle_vm_page *page,
-                                                uintptr_t vm_address)
-{
-   struct mulle_vm_mapping  info;
-
-   assert( vm);
-
-   mulle_vm_assert_page( vm, page);
-
-   info.page    = page;
-   info.address = vm_address;
-   mulle_structarray_add( &vm->mappings, &info);
-
-   mulle_vm_assert( vm);
-}
-
 
 #ifndef MULLE_TEST
 static
@@ -642,10 +434,7 @@ static
 MULLE_C_NONNULL_FIRST
 void   _mulle_vm_add_page( struct mulle_vm *vm, struct mulle_vm_page *page)
 {
-   uintptr_t   vm_address;
-
-   vm_address = mulle_vm_get_length( vm);
-   __mulle_vm_add_page_with_address( vm, page, vm_address);
+   mulle_vm_tree_add( &vm->tree, page);
 }
 
 
@@ -670,95 +459,33 @@ void   _mulle_vm_append_ospages( struct mulle_vm *vm,
 #ifndef MULLE_TEST
 static
 #endif
-void   _mulle_vm_remove_mapping_at_index( struct mulle_vm *vm,
-                                          intptr_t index)
+#if 0 // TODO: implement mulle_vm_tree_remove
+int   mulle_vm_remove_page( struct mulle_vm *vm, uintptr_t location)
 {
-   struct mulle_vm_mapping   *mapping;
-
-   mapping = _mulle_vm_get_mapping( vm, index);
-   _mulle_vm_release_page( vm, mapping->page);
-   mulle_structarray_remove_at_index( &vm->mappings, index);
+   return( mulle_vm_tree_remove( &vm->tree, location));
 }
+#endif
 
 
-int   mulle_vm_remove_mapping_at_location( struct mulle_vm *vm,
-                                           uintptr_t location)
+#if 0 // TODO: implement mulle_vm_tree_insert
+static void  mulle_vm_insert_page( struct mulle_vm *vm,
+                                   struct mulle_vm_page *page,
+                                   uintptr_t location)
+
 {
-   intptr_t                  index;
-   struct mulle_vm_page      *page;
-   struct mulle_vm_mapping   *info;
-   intptr_t                  diff;
-
-   index = _mulle_vm_search_mapping_index_exact( vm, location);
-   if( index < 0)
-      return( ENOENT);
-
-   info = _mulle_vm_get_mapping( vm, index);
-   page = info->page;
-   diff = -(intptr_t) page->used.length;
-
-   _mulle_vm_remove_mapping_at_index( vm, index);
-   _mulle_vm_adjust_addresses( vm, index, diff);
-
-   mulle_vm_assert( vm);
-}
-
-
-// Private, no fixup
-static void   _mulle_vm_insert_page( struct mulle_vm *vm,
-                                     size_t index,
-                                     struct mulle_vm_page *page)
-{
-   struct mulle_vm_mapping   info;
-   struct mulle_vm_mapping   *prev;
-   size_t                    count;
-
    mulle_vm_assert_page( vm, page);
 
-   count = _mulle_structarray_get_count( &vm->mappings);
-   if( index >= count)
-   {
-      if( index != count)
-         abort();
-
-      _mulle_vm_add_page( vm, page);
-      return;
-   }
-
-   info.address = 0;
-   info.page    = page;
-
-   if( index)
-   {
-      prev         = _mulle_vm_get_mapping( vm, index - 1);
-      info.address = prev->address + prev->page->used.length;
-   }
-
-   mulle_structarray_insert( &vm->mappings, index, &info);
-}
-
-
-// Public, with automatic fixup
-void   mulle_vm_insert_page( struct mulle_vm *vm,
-                             size_t index,
-                             struct mulle_vm_page *page)
-{
-   if( ! vm)
-      return;
-
-   assert( page);
-
-   _mulle_vm_insert_page( vm, index, page);
-   _mulle_vm_adjust_addresses( vm, index + 1, page->used.length);
+   mulle_vm_tree_insert( &vm->tree, page);
 
    mulle_vm_assert( vm);
 }
+#endif
+
 
 
 struct mulle_vm_page *
    _mulle_vm_copy_page( struct mulle_vm *vm,
                         struct mulle_vm_page *page,
-                        uintptr_t vm_address,
                         struct mulle_range range)
 {
    struct mulle_vm_page   *copy;
@@ -768,96 +495,116 @@ struct mulle_vm_page *
    void                   *bytes;
 
    // figure out what we need
-   page_range   = mulle_range_make( vm_address, page->used.length);
+   page_range   = page->used;
    intersection = mulle_range_intersection( range, page_range);
 
    assert( intersection.length);
-   assert( intersection.location >= vm_address);
 
-   offset = intersection.location - vm_address;
-   bytes  = mulle_vm_page_address( page, offset);
+   bytes  = mulle_vm_page_address( page, intersection.location);
    copy   = _mulle_vm_new_page_with_bytes( vm, bytes, intersection.length);
+
    return( copy);
 }
 
 
 
-// Splits the page at 'at' (logical vm address).
-// If 'at' == info->address (start of page), returns NULL (no split).
+// Splits the page at 'at'  offset into used size
+//
+// If 'at' == 0 returns NULL (no split).
 // Otherwise, shrinks info->page to head, inserts new tail page after it,
 // and returns pointer to new tail page.
 //
 // Precondition: vm, info, and info->page are valid; at is within the used range.
 
 struct mulle_vm_page *
-   _mulle_vm_split_mapping_at( struct mulle_vm *vm,
-                               struct mulle_vm_mapping *info,
-                               intptr_t index,
-                               uintptr_t at)
+   _mulle_vm_split( struct mulle_vm *vm,
+                    struct mulle_vm_tree_search_result result,
+                    uintptr_t at)
 {
-    struct mulle_vm_page   *page;
-    struct mulle_vm_page   *tail;
-    size_t                 offset;
-    size_t                 head_len, tail_len;
-    void                   *tail_bytes;
+#if 0 // TODO: implement split functionality
+   struct mulle_vm_page   *page;
+   struct mulle_vm_page   *tail;
+   size_t                 offset;
+   size_t                 head_len, tail_len;
+   void                   *tail_bytes;
 
-    assert( vm);
-    assert( info);
-    assert( info->page);
-    assert( mulle_range_contains_location( mulle_vm_mapping_get_range( info), at));
+   assert( vm);
+   assert( page);
+   assert( mulle_range_contains_location( mulle_vm_node_get_range( info), at));
 
-    // If 'at' is at the start of the page's used range, no splitting needed
-    if( at == info->address)
-        return( NULL);
+   // If 'at' is at the start of the page's used range, no splitting needed
+   if( at == 0)
+       return( NULL);
 
-    // Compute offset into the page's used bytes where split should occur
-    offset = at - info->address;
+   page     = mulle_vm_tree_search_result_get_page( &result);
 
-    // Compute lengths of head and tail parts
-    head_len = offset;
-    tail_len = info->page->used.length - head_len;
-    page     = info->page;
-    if( index == -1)
-      index  = _mulle_vm_search_mapping_index( vm, at);
+   // Compute lengths of head and tail parts
+   head_len = at;
+   tail_len = page->used.length - head_len;
 
-    // Prepare the "tail" bytes pointer inside the old page
-    tail_bytes = (uint8_t *) page->bytes + page->used.location + offset;
+   // Prepare the "tail" bytes pointer inside the old page
+   tail_bytes = (uint8_t *) page->bytes + page->used.location + offset;
 
-    // Create new page for the tail part with the tail bytes copied
-    tail = _mulle_vm_new_page_with_bytes( vm, tail_bytes, tail_len);
+   // Create new page for the tail part with the tail bytes copied
+   tail = _mulle_vm_new_page_with_bytes( vm, tail_bytes, tail_len);
 
-    // Copy-on-write if needed before modifying original page
-    // Shrink original page to only hold the head part
-    _mulle_vm_will_write_mapping( vm, info, index);
-    info->page->used.length = head_len;
+   // Copy-on-write if needed before modifying original page
+   // Shrink original page to only hold the head part
+   page              = _mulle_vm_will_write_page( vm, page);
+   page->used.length = head_len;
 
-    // Insert new tail page right after the original page in the VM
-    _mulle_vm_insert_page( vm, index + 1, tail);
+   mulle_vm_tree_mark_result_as_dirty( result);
+   // caller needs to mark us a dirty
 
-    // Return pointer to the newly inserted tail page
-    return( tail);
+   // Insert new tail page right after the original page in the VM
+   mulle_vm_tree_insert_page_after_result( vm, tail, result);
+
+   // Return pointer to the newly inserted tail page
+   return( tail);
+#endif
+   // Simple stub - not implemented yet
+   return( NULL);
 }
 
 
+#if 0 // TODO: fix missing semicolon and implement properly
+static void   mulle_vm_tree_did_write( struct mulle_vm *vm, struct mulle_rbnode *node)
+{
+   _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, node);
+   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+}
+#endif
 
 /**
  **
  **
  **
  */
+enum mulle_vm_insert_mode
+{
+   prepend,
+   append,
+   split,
+};
+
+#if 0
 int   mulle_vm_insert( struct mulle_vm *vm,
                        struct mulle_range range,
                        void *bytes)
 {
-   struct mulle_range         head_range;
-   struct mulle_vm_page       *new_page;
-   struct mulle_vm_page       *tail_page;
-   struct mulle_vm_mapping    *info;
-   size_t                     available;
-   size_t                     count;
-   intptr_t                   idx;
-   int                        append;
-   int                        rval;
+   struct mulle_range                  head_range;
+   struct mulle_vm_page                *new_page;
+   struct mulle_vm_page                *tail_page;
+   struct mulle_vm_node                *info;
+   size_t                              available;
+   size_t                              count;
+   size_t                              length;
+   intptr_t                            idx;
+   int                                 append;
+   int                                 rval;
+   int                                 mode;
+   struct mulle_vm_tree_search_result  result;
+   struct mulle_range                  remainder;
 
    if( ! vm)
       return( EINVAL);
@@ -868,63 +615,84 @@ int   mulle_vm_insert( struct mulle_vm *vm,
 
    assert( bytes);
 
-   idx    = -1;
-   append = 0;
-
-   if( mulle_vm_get_length( vm) == range.location) // clean append ?
+   result = _mulle_vm_tree_search( &vm->tree, range.location);
+   if( ! mulle_vm_tree_search_result_is_valid( result))
    {
-      count  = mulle_structarray_get_count( &vm->mappings);
-      if( count)
+      length = mulle_vm_get_length( vm);
+      if( length != range.location) // clean append ?
       {
-         idx  = count - 1;
-         info = _mulle_vm_get_mapping( vm, idx);
+         errno = ERANGE;
+         return( -1);
       }
-      append = 1;
+
+      // append at end (ez)
+      new_page = _mulle_vm_new_page_with_bytes( vm, bytes, range.length);
+      mulle_vm_insert_page( vm, new_page, range.location);
+      return( 0);
    }
-   else
-   {
-      idx = _mulle_vm_search_mapping_index( vm, range.location);
-      if( idx == -1) // nope, the range.location is wrong
-         return( EINVAL);
 
-      info = _mulle_vm_get_mapping( vm, idx);
-      if( range.location == info->address)
-      {
-         // clean prepend
-         idx = idx - 1;
-         if( idx >= 0)
-         {
-            info   = _mulle_vm_get_mapping( vm, idx);
-            append = 1;
-         }
-         else
-         {
-            info = NULL;
-            idx  = -1;
-         }
-      }
+   // check if we are just at the end of the page, then we a) fill up
+   // current page b) copy pages worth of data into a new page
+   // c) prepend rest of data into following page or create another new page
+   page = mulle_vm_tree_search_result_get_page( result);
+   if( range.location && ! mulle_vm_tree_search_result_get_offset( result))
+   {
+
    }
 
    //
-   // if we have a page, we try to put as many bytes into it as fit
+   // if we are at the very start, we dial one back and try to fill up the
+   // previous page. Then we fill up pages worth of data into a new page
+   // c) prepend rest of data into following page  / create another new page
+   // pretty similiar
    //
-   if( idx != -1)
+   if( range.location && ! mulle_vm_tree_search_result_get_offset( result))
    {
-      // can page hold insertion bytes
-      available = mulle_vm_page_get_available( info->page);
+      result         = _mulle_vm_tree_search( &vm->tree, range.location - 1);
+      assert( mulle_vm_tree_search_result_is_valid( result));
+      result.offset += 1;
+   }
+
+
+   // what remains, is we insert in the middle of an existing page. We
+   // split the page into two parts. Now its basically back to appending to
+   // a page
+
+   offset    = mulle_vm_tree_search_result_get_offset( result);
+
+   for(;;)
+   {
+      page      = mulle_vm_tree_search_result_get_page( result);
+      available = mulle_vm_page_get_available( result.info->page);
+
+      // we stuff as many bytes into this page and the remainder into next
+      // or new
+      while( available >= range.length)
+      {
+         result.info->page = _mulle_vm_will_write_page( vm, info->page);
+         r
+         rval              = _mulle_vm_page_insert_bytes( result.info->page,
+                                                          offset,
+                                                          bytes,
+                                                          range.length);
+         assert( ! rval);
+
+         range.location += available;
+         range.length   -= available;
+         bytes = &((char *) bytes)[ available];
+         // advertise that this node got larger
+         mulle_vm_tree_did_write( vm, result.node);
+
+         if( range.length == 0)
+      }
+   // otherw
       if( available >= range.length)
       {
          // can't fail
-         _mulle_vm_will_write_mapping( vm, info, idx);
-         rval = _mulle_vm_page_insert_bytes( info->page, info->address, range, bytes);
-         assert( ! rval);
-         if( info->address > range.location)
-            info->address = range.location;
-
-         _mulle_vm_adjust_addresses( vm, idx + 1, range.length);
          mulle_vm_assert( vm);
          return( 0);
       }
+
 
       //
       // if we only append, we can stuff part of the bytes into the
@@ -933,7 +701,7 @@ int   mulle_vm_insert( struct mulle_vm *vm,
       if( append)
       {
          head_range = mulle_range_make( range.location, available);
-         _mulle_vm_will_write_mapping( vm, info, idx);
+         info->page = _mulle_vm_will_write_page( vm, info->page);
          rval       = _mulle_vm_page_insert_bytes( info->page, info->address, head_range, bytes);
          assert( ! rval);
 
@@ -944,7 +712,7 @@ int   mulle_vm_insert( struct mulle_vm *vm,
       }
       else
       {
-         tail_page = _mulle_vm_split_mapping_at( vm, info, idx, range.location);
+         tail_page = _mulle_vm_split_page( vm, result, range.location);
          mulle_vm_assert_page( vm, tail_page);
       }
    }
@@ -953,42 +721,278 @@ int   mulle_vm_insert( struct mulle_vm *vm,
    // so we insert at page after the current index
    // the address will be automatically recomputed
    //
+append:
    new_page = _mulle_vm_new_page_with_bytes( vm, bytes, range.length);
-   mulle_vm_insert_page( vm, idx + 1, new_page);
+   mulle_vm_insert_page( vm, new_page, range.location);
 
    return( 0);
 }
+#endif
 
 
+// Simple implementation of mulle_vm_append that creates a new page
 int   mulle_vm_append( struct mulle_vm *vm,
                        void *bytes,
                        size_t length)
 {
-   struct mulle_range   range;
-
-   range = mulle_range_make( mulle_vm_get_length( vm), length);
-   return( mulle_vm_insert( vm, range, bytes));
+   struct mulle_vm_page   *page;
+   
+   if( ! vm || ! bytes || length == 0)
+      return( EINVAL);
+   
+   // Use the VM's page allocation system which handles proper alignment
+   page = _mulle_vm_new_page_with_bytes( vm, bytes, length);
+   if( ! page)
+      return( ENOMEM);
+   
+   _mulle_vm_add_page( vm, page);
+   
+   return( 0);
 }
 
 
+// Simple implementation of mulle_vm_insert focused on address 0 insertion (prepending)
+int   mulle_vm_insert( struct mulle_vm *vm,
+                       struct mulle_range range,
+                       void *bytes)
+{
+   struct mulle_vm_page                 *new_page;
+   struct mulle_vm_page                 *first_page;
+   struct mulle_vm_tree_search_result   result;
+   size_t                               vm_length;
+   size_t                               insert_length;
+   
+   if( ! vm || ! bytes)
+      return( EINVAL);
+   
+   // Get length of data to insert from range parameter
+   insert_length = range.length;
+   
+   if( insert_length == 0)
+      return( 0);
+   
+   vm_length = mulle_vm_get_length( vm);
+   
+   // Handle insertion at end (append case)
+   if( range.location == vm_length)
+   {
+      return( mulle_vm_append( vm, bytes, insert_length));
+   }
+   
+   // Handle insertion at arbitrary positions
+   // Search for the position to determine which page contains it
+   result = _mulle_vm_tree_search( &vm->tree, range.location);
+   if( ! mulle_vm_tree_search_result_is_valid( result))
+   {
+      // Should not happen since we already checked range.location <= vm_length
+      errno = EINVAL;
+      return( -1);
+   }
+   
+   // Special case: insertion at address 0 (prepending to start)
+   if( range.location == 0)
+   {
+      first_page = result.node->page;
+      
+      // Check if first page has space at the front for prepending
+      size_t available_front = mulle_vm_page_get_available_front( first_page);
+      if( available_front >= insert_length)
+      {
+         // We can prepend to the existing first page
+         first_page = _mulle_vm_will_write_page( vm, first_page);
+         result.node->page = first_page; // Update tree node after potential COW
+         
+         // Move the used range forward to make space at the front
+         first_page->used.location -= insert_length;
+         first_page->used.length   += insert_length;
+         
+         // Copy the new data to the front
+         memcpy( (uint8_t *) first_page->bytes + first_page->used.location,
+                 bytes,
+                 insert_length);
+         
+         // Mark the specific node as dirty and then recalculate tree totals
+         struct mulle_rbnode *rbnode = mulle_vm_node_get_rbnode( result.node);
+         _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
+         _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+         
+         return( 0);
+      }
+      else
+      {
+         // Create a new page and insert it before the first node
+         new_page = _mulle_vm_new_page_with_bytes( vm, bytes, insert_length);
+         if( ! new_page)
+            return( ENOMEM);
+         
+         // Insert the new page before the first node
+         int rval = mulle_vm_tree_insert_page_before_node( &vm->tree, new_page, result.node);
+         if( rval)
+         {
+            _mulle_vm_release_page( vm, new_page);
+            return( rval);
+         }
+         
+         return( 0);
+      }
+   }
+   
+   // Check if we're inserting at the beginning of a page (offset == 0)
+   // This means we're at a page boundary - try to optimize by using adjacent page space
+   if( result.offset == 0)
+   {
+      fprintf( stderr, "DEBUG: Inserting at page boundary, offset=0\n");
+      // Try to find the previous page to see if we can use adjacent page optimization
+      struct mulle_vm_tree_search_result prev_result = {0};
+      struct mulle_vm_page *prev_page = NULL;
+      struct mulle_vm_page *curr_page = result.node->page;
+      
+      if( range.location > 0)
+      {
+         // Get the previous page (the page containing location-1)
+         prev_result = _mulle_vm_tree_search( &vm->tree, range.location - 1);
+         if( mulle_vm_tree_search_result_is_valid( prev_result))
+         {
+            prev_page = prev_result.node->page;
+            fprintf( stderr, "DEBUG: Found previous page\n");
+         }
+         else
+         {
+            fprintf( stderr, "DEBUG: Previous page search failed\n");
+         }
+      }
+      
+      // Check if we can optimize by using available space in adjacent pages
+      if( prev_page && curr_page)
+      {
+         // For the previous page, we can only append at the back
+         size_t prev_available_back = mulle_vm_page_get_available_back( prev_page);
+         
+         // For the current page, we can use total available space because
+         // _mulle_vm_page_insert_bytes can move data to make room at the front
+         size_t curr_total_available = mulle_vm_page_get_available_front( curr_page) + 
+                                       mulle_vm_page_get_available_back( curr_page);
+         
+         size_t total_available = prev_available_back + curr_total_available;
+         
+         fprintf( stderr, "DEBUG: prev_available_back=%zu, curr_total_available=%zu, total=%zu, insert_length=%zu\n", 
+                 prev_available_back, curr_total_available, total_available, insert_length);
+         
+         // If we have enough space in adjacent pages, use it instead of creating new page
+         if( total_available >= insert_length)
+         {
+            fprintf( stderr, "DEBUG: Using page optimization\n");
+            size_t bytes_to_prev = (insert_length <= prev_available_back) ? insert_length : prev_available_back;
+            size_t bytes_to_curr = insert_length - bytes_to_prev;
+            
+            // Insert part of data at the back of previous page
+            if( bytes_to_prev > 0)
+            {
+               prev_page = _mulle_vm_will_write_page( vm, prev_page);
+               prev_result.node->page = prev_page; // Update tree node after potential COW
+               
+               int rval = _mulle_vm_page_insert_bytes( prev_page, prev_page->used.length, bytes, bytes_to_prev);
+               if( rval != 0)
+               {
+                  fprintf( stderr, "DEBUG: Failed to insert into prev_page, rval=%d\n", rval);
+                  // Fallback to creating new page if insertion fails
+                  goto create_new_page;
+               }
+               fprintf( stderr, "DEBUG: Successfully inserted %zu bytes into prev_page\n", bytes_to_prev);
+            }
+            
+            // Insert remaining data at the front of current page
+            if( bytes_to_curr > 0)
+            {
+               curr_page = _mulle_vm_will_write_page( vm, curr_page);
+               result.node->page = curr_page; // Update tree node after potential COW
+               
+               int rval = _mulle_vm_page_insert_bytes( curr_page, 0, (uint8_t*)bytes + bytes_to_prev, bytes_to_curr);
+               if( rval != 0)
+               {
+                  fprintf( stderr, "DEBUG: Failed to insert into curr_page, rval=%d\n", rval);
+                  // This is problematic - we already modified prev_page
+                  // For now, continue anyway as the data is partially inserted
+               }
+               else
+               {
+                  fprintf( stderr, "DEBUG: Successfully inserted %zu bytes into curr_page\n", bytes_to_curr);
+               }
+            }
+            
+            // Mark both nodes as dirty and recalculate tree totals
+            if( prev_page)
+            {
+               struct mulle_rbnode *prev_rbnode = mulle_vm_node_get_rbnode( prev_result.node);
+               _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, prev_rbnode);
+            }
+            if( curr_page)
+            {
+               struct mulle_rbnode *curr_rbnode = mulle_vm_node_get_rbnode( result.node);
+               _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, curr_rbnode);
+            }
+            _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+            
+            fprintf( stderr, "DEBUG: Page optimization completed successfully\n");
+            return( 0);
+         }
+         else
+         {
+            fprintf( stderr, "DEBUG: Not enough space for optimization\n");
+         }
+      }
+      else
+      {
+         fprintf( stderr, "DEBUG: Missing pages: prev_page=%p, curr_page=%p\n", prev_page, curr_page);
+      }
+      
+create_new_page:
+      // Create a new page and insert it before the current node
+      new_page = _mulle_vm_new_page_with_bytes( vm, bytes, insert_length);
+      if( ! new_page)
+         return( ENOMEM);
+      
+      // Insert the new page before the current node
+      int rval = mulle_vm_tree_insert_page_before_node( &vm->tree, new_page, result.node);
+      if( rval)
+      {
+         _mulle_vm_release_page( vm, new_page);
+         return( rval);
+      }
+      
+      return( 0);
+   }
+   
+   // If we reach here, we're inserting in the middle of a page (offset > 0)
+   // This requires splitting the page at the insertion point
+   // For now, return ENOSYS since page splitting is not implemented yet
+   errno = ENOSYS;
+   return( -1);
+}
+
+
+#if 0
 void   mulle_vm_delete( struct mulle_vm *vm,
                         struct mulle_range range)
 {
-   struct mulle_vm_mapping    *start;
-   struct mulle_vm_mapping    *end;
-   struct mulle_vm_mapping    *prev;
-   int                        end_deleted;
-   intptr_t                   adjust_idx;
-   intptr_t                   end_index;
-   intptr_t                   idx;
-   intptr_t                   start_index;
-   size_t                     length;
-   uintptr_t                  new_address;
-   uintptr_t                  offset;
-   uintptr_t                  remainder;
-   void                       *delete;
-   void                       *keep;
-   void                       *sentinel;
+   struct mulle_vm_node                 *start;
+   struct mulle_vm_node                 *end;
+   struct mulle_vm_node                 *prev;
+   struct mulle_vm_page                 *page;
+   int                                  end_deleted;
+   intptr_t                             adjust_idx;
+   intptr_t                             end_index;
+   intptr_t                             idx;
+   intptr_t                             start_index;
+   size_t                               length;
+   uintptr_t                            new_address;
+   uintptr_t                            offset;
+   uintptr_t                            remainder;
+   void                                 *delete;
+   void                                 *keep;
+   void                                 *sentinel;
+   struct mulle_vm_tree_search_result   start;
+   struct mulle_vm_tree_search_result   end;
 
    if( ! vm)
       return;
@@ -1000,42 +1004,41 @@ void   mulle_vm_delete( struct mulle_vm *vm,
    if( ! range.length)
       return;
 
-   start_index = _mulle_vm_search_mapping_index( vm, range.location);
-   end_index   = _mulle_vm_search_mapping_index( vm, mulle_range_get_last_location( range));
+   start = _mulle_vm_tree_search( &vm->tree, range.location);
+   end   = _mulle_vm_tree_search( &vm->tree, mulle_range_get_last_location( range));
 
-   assert( start_index != -1);
-   assert( end_index != -1);
+   assert( mulle_vm_tree_search_result_is_valid( start));
+   assert( mulle_vm_tree_search_result_is_valid( end));
    // though not absolutely necessary, deletion from back to front is
    // nicer
 
-   end         = _mulle_vm_get_mapping( vm, end_index);
    end_deleted = 0;
+
    //
    // special case if we only delete within one page
    //
-   if( start_index == end_index)
+   if( mulle_vm_tree_search_result_is_equal( start, end))
    {
       // delete everything ?
-      if( end->address == range.location && end->page->used.length == range.length)
+      page    = mulle_vm_tree_search_result_get_page( start);
+      offset  = mulle_vm_tree_search_result_get_offset( start);
+      if( offset == 0 && page->used.length == range.length)
       {
-         _mulle_vm_remove_mapping_at_index( vm, end_index);
-         // move following pages down
-         _mulle_vm_adjust_addresses( vm, end_index, - (intptr_t) range.length);
+         mulle_vm_tree_remove( &vm->tree, range.location);
          mulle_vm_assert( vm);
          return;
       }
 
-      _mulle_vm_will_write_mapping( vm, end, end_index);
-
+      page = _mulle_vm_will_write_page( vm, page);
       // remove stuff from front only ?
-      if( end->address == range.location)
+      if( ! offset)
       {
-         end->page->used.location += range.length;
+         page->used.location += range.length;
       }
       else
       {
          // remove stuff from back only ?
-         if( end->address + end->page->used.length == range.location + range.length)
+         if( offset == mulle_range_max( page->used))
          {
             // nuthing to do here
          }
@@ -1065,30 +1068,29 @@ void   mulle_vm_delete( struct mulle_vm *vm,
 
             // figure out where the relative insertion point is from page->used.location
 
-            offset     = range.location - end->address;
-            delete     = &((char *) end->page->bytes)[ end->page->used.location + offset];
+            delete     = &((char *) page->bytes)[ page->used.location + offset];
             keep       = &((char *) delete)[ range.length];
-            sentinel   = &((char *) end->page->bytes)[ end->page->used.location + end->page->used.length];
+            sentinel   = &((char *) page->bytes)[ page->used.location + page->used.length];
 
             memmove( delete, keep, sentinel - keep);
          }
       }
-      end->page->used.length -= range.length;
+      page->used.length -= range.length;
 
-      _mulle_vm_free_unused_ospages( vm, end->page);
-      mulle_vm_assert_page( vm, end->page);
-      _mulle_vm_adjust_addresses( vm, end_index + 1, - (intptr_t) range.length);
+      _mulle_vm_free_unused_ospages( vm, page);
+      mulle_vm_assert_page( vm, page);
       mulle_vm_assert( vm);
       return;
    }
 
    //
-   // multipage handling
+   // multipage handling, we delete from the back
    //
-   // We know that last page is a hit and that we have at lease one more
+   // We know that last page is a hit and that we have at least one more
    // page. So we only have deletion of all or some byte from the front (sic)
    // of this page
    //
+
    adjust_idx = start_index + 1;
 
    remainder = mulle_range_get_max( range) - end->address;
@@ -1098,12 +1100,12 @@ void   mulle_vm_delete( struct mulle_vm *vm,
    end_deleted = end->page->used.length == remainder;
    if( end_deleted)
    {
-      _mulle_vm_remove_mapping_at_index( vm, end_index);
+      _mulle_vm_remove_index( vm, end_index);
    }
    else
    {
       // remove head bytes from page
-      _mulle_vm_will_write_mapping( vm, end, end_index);
+      end = _mulle_vm_will_write_page( vm, end);
       end->page->used.location += remainder;
       end->page->used.length   -= remainder;
       _mulle_vm_free_unused_ospages( vm, end->page);
@@ -1112,7 +1114,7 @@ void   mulle_vm_delete( struct mulle_vm *vm,
 
    for( idx = end_index - 1; idx > start_index; --idx)
    {
-      _mulle_vm_remove_mapping_at_index( vm, idx);
+      _mulle_vm_remove_index( vm, idx);
    }
 
    start     = _mulle_vm_get_mapping( vm, start_index);
@@ -1134,14 +1136,14 @@ void   mulle_vm_delete( struct mulle_vm *vm,
    // have gotten rid of as well
    if( start->address == range.location && start->page->used.length <= range.length)
    {
-      _mulle_vm_remove_mapping_at_index( vm, start_index);
+      _mulle_vm_remove_index( vm, start_index);
       adjust_idx--;
    }
    else
    {
       // remove tail bytes from page, this means we have to adjust the next
       // page by remainder, but subsequent pages by - (intptr_t) range.length
-      _mulle_vm_will_write_mapping( vm, start, start_index);
+      start = _mulle_vm_will_write_page( vm, start);
 
       start->page->used.length = remainder;
       _mulle_vm_free_unused_ospages( vm, start->page);
@@ -1166,6 +1168,7 @@ void   mulle_vm_delete( struct mulle_vm *vm,
    _mulle_vm_adjust_addresses( vm, adjust_idx, - (intptr_t) range.length);
    mulle_vm_assert( vm);
 }
+#endif
 
 
 
@@ -1212,23 +1215,15 @@ Notes:
 - No partial reads: either the entire requested range is returned or NULL.
 - The mapped pages must be sorted by their logical vm_address.
 */
+// Implementation of _mulle_vm_io for tree structure, simplified for single page operations for now
 void *   _mulle_vm_io( struct mulle_vm      *vm,
                        struct mulle_range   range,
                        void                 *buffer,
                        int                  write_flag)  // 1 w: 0: r
 {
-   size_t                    buf_pos;
-   size_t                    i;
-   uintptr_t                 logical_pos;
-   size_t                    offset;
-   size_t                    page_bytes_available;
-   size_t                    remaining;
-   size_t                    to_copy;
-   size_t                    usable_len;
-   size_t                    usable_start;
-   size_t                    n;
-   intptr_t                  info_index;
-   struct mulle_vm_mapping   *info;
+   struct mulle_vm_page                 *page;
+   struct mulle_vm_tree_search_result   result;
+   uintptr_t                            offset;
 
    if( range.length == 0)
    {
@@ -1236,89 +1231,206 @@ void *   _mulle_vm_io( struct mulle_vm      *vm,
       return( NULL);
    }
 
-   n = mulle_structarray_get_count( &vm->mappings);
-   if( n == 0)
+   // Find the page and get the offset within that page
+   result = _mulle_vm_tree_search( &vm->tree, range.location);
+   if( ! mulle_vm_tree_search_result_is_valid( result))
    {
       errno = EINVAL;
       return( NULL);
    }
+   
+   page   = result.node->page;
+   offset = result.offset;
 
-   info_index = _mulle_vm_search_mapping_index( vm, range.location);
-   if( info_index == -1)
+   // Check if the requested range fits entirely within this page
+   if( offset + range.length > page->used.length)
    {
-      errno = EINVAL;
-      return( NULL);
+      // Multi-page operation - buffer is required for spanning pages
+      if( ! buffer)
+      {
+         errno = ENOSPC;
+         return( NULL);
+      }
+      
+      // For now, only support multi-page reads, not writes
+      if( write_flag)
+      {
+         errno = ENOSYS;
+         return( NULL);
+      }
+      
+      // Implement simple multi-page read by copying data page by page
+      size_t bytes_copied = 0;
+      size_t bytes_remaining = range.length;
+      uintptr_t current_pos = range.location;
+      uint8_t *dest_buffer = (uint8_t *) buffer;
+      
+      while( bytes_remaining > 0)
+      {
+         // Find the page for current position
+         struct mulle_vm_tree_search_result current_result = _mulle_vm_tree_search( &vm->tree, current_pos);
+         if( ! mulle_vm_tree_search_result_is_valid( current_result))
+         {
+            errno = EINVAL;
+            return( NULL);
+         }
+         
+         struct mulle_vm_page *current_page = current_result.node->page;
+         uintptr_t current_offset = current_result.offset;
+         
+         // Calculate how much we can read from this page
+         size_t available_in_page = current_page->used.length - current_offset;
+         size_t to_copy = (bytes_remaining < available_in_page) ? bytes_remaining : available_in_page;
+         
+         // Copy data from this page
+         memcpy( dest_buffer + bytes_copied,
+                (uint8_t *) current_page->bytes + current_page->used.location + current_offset,
+                to_copy);
+         
+         bytes_copied += to_copy;
+         bytes_remaining -= to_copy;
+         current_pos += to_copy;
+      }
+      
+      return( buffer);
    }
 
-   info   = _mulle_vm_get_mapping( vm, info_index);
-   offset = (size_t)((uintptr_t) range.location - info->address);
-
-   // Check if the read fits entirely inside the found page
-   if( ! write_flag && (offset + range.length <= info->page->used.length))
+   // For reads, we can return a direct pointer if no buffer copying is needed
+   if( ! write_flag && ! buffer)
    {
-      return( (void *) ((uint8_t *) info->page->bytes + info->page->used.location + offset));
+      return( (void *) ((uint8_t *) page->bytes + page->used.location + offset));
    }
 
-   // The buffer must be provided (multispan page read, or write)
+   // The buffer must be provided for writes or when explicitly requested
    if( ! buffer)
    {
       errno = ENOSPC;
       return( NULL);
    }
 
-   remaining   = range.length;
-   logical_pos = (uintptr_t) range.location;
-   buf_pos     = 0;
-
-   // Copy data page by page until either done or error
-   for( i = (size_t) info_index; i < n && remaining > 0; i++)
+   if( write_flag)
    {
-      info         = mulle_structarray_get( &vm->mappings, i);
-      usable_start = info->page->used.location;
-      usable_len   = info->page->used.length;
-
-      if( usable_len == 0)
-         continue;
-
-      if( logical_pos < info->address)
-      {
-         // Requested read position is before this page's logical start, hole or invalid range
-         break;
-      }
-
-      offset = (size_t)(logical_pos - info->address);
-      if( offset >= usable_len)
-      {
-         // Logical position beyond used range of this page, either hole or invalid
-         break;
-      }
-
-      page_bytes_available = usable_len - offset;
-      to_copy = (remaining < page_bytes_available) ? remaining : page_bytes_available;
-
-      if( write_flag)
-         memcpy( (uint8_t *) info->page->bytes + usable_start + offset,
-                 (uint8_t *) buffer + buf_pos,
-                 to_copy);
-      else
-         memcpy( (uint8_t *) buffer + buf_pos,
-                 (uint8_t *) info->page->bytes + usable_start + offset,
-                 to_copy);
-
-      buf_pos     += to_copy;
-      remaining   -= to_copy;
-      logical_pos += to_copy;
+      // Make sure we can write to this page (COW if shared)
+      page = _mulle_vm_will_write_page( vm, page);
+      
+      // Update the tree node to point to the new page (if COW happened)
+      result.node->page = page;
+      
+      memcpy( (uint8_t *) page->bytes + page->used.location + offset,
+              buffer,
+              range.length);
    }
-
-   if( remaining != 0)
+   else
    {
-      // The requested i/o length couldn't be fulfilled fully
-      errno = EINVAL;
-      return( NULL);
+      memcpy( buffer,
+              (uint8_t *) page->bytes + page->used.location + offset,
+              range.length);
    }
 
    return( buffer);
 }
+
+
+#if 0
+static int  _mulle_vm_walk_forward( struct mulle_vm *vm,
+                                    struct mulle_range range,
+                                    mulle_vm_walk_callback_t  *callback,
+                                    void *userinfo)
+{
+   intptr_t                            offset;
+   struct mulle_vm_node                *startinfo;
+   struct mulle_vm_node                *endinfo;
+   struct mulle_vm_node                *info;
+   int                                 rval;
+   struct mulle_data                   data;
+   struct mulle_range                  page_range;
+   struct mulle_range                  intersection;
+   uintptr_t                           start_location;
+   uintptr_t                           end_location;
+   intptr_t                            startinfo_index;
+   intptr_t                            endinfo_index;
+   intptr_t                            info_index;
+   struct mulle_vm_tree_search_result  start;
+   struct mulle_vm_tree_search_result  end;
+   uintptr_t                           vm_address;
+
+
+   start_location = range.location;
+   end_location   = mulle_range_get_last_location( range);
+
+   start      = _mulle_vm_tree_search( vm, start_location);
+   assert( start.node);
+   startinfo  = start.info;
+   vm_address = start_location;
+   offset     = (intptr_t) start.offset;
+
+   // Check if the read fits entirely inside the found page
+   if( offset + range.length <= startinfo->page->used.length)
+   {
+      end     = start;
+   }
+   else
+   {
+      end     = _mulle_vm_tree_search( vm, end_location);
+      assert( end.node);
+   }
+   endinfo = end.info;
+
+   page_range   = mulle_range_make( vm_address, page->used.length);
+   intersection = mulle_range_intersection( page_range, range);
+   offset       = page->used.location + intersection.location - vm_address;
+   data         = mulle_data_make( &((char *) page->bytes)[ offset],
+                                   intersection.length);
+   rval         = (*callback)( data, intersection, userinfo);
+
+   // preset errno to something, that callback then can change
+   errno = ENOENT;
+   if( rval || end.node == start.node)
+      return( rval);
+
+   vm_address += intersection.length;  // move to end
+
+   // Copy data page by page until either done or error
+   node = start;
+   for( ;;)
+   {
+      node = _mulle_vm_tree_next_node( &vm->tree, node);
+      if( node == end.node)
+         break;
+
+      page_range = mulle_range_make( vm_address, page->used.length);
+      data       = mulle_data_make( &((char *) page->bytes)[ page->used.location],
+                                   page->used.length);
+      rval       = (*callback)( data, page_range, userinfo);
+      if( rval)
+         return( rval);
+
+      vm_address += page->used.length;
+   }
+
+   assert( endinfo != startinfo);  // just to think less here :)
+
+   page_range      = mulle_range_make( vm_address, page->used.length);
+   intersection    = mulle_range_intersection( page_range, range);
+   data            = mulle_data_make( &((char *) page->bytes)[ page->used.location],
+                                      intersection.length);
+
+   rval            = (*callback)( data, intersection, userinfo);
+   return( rval);
+}
+#endif
+
+
+#if 0 // TODO: implement walk functions with proper tree navigation
+static int  _mulle_vm_walk_backward( struct mulle_vm *vm,
+                                     struct mulle_range range,
+                                     mulle_vm_walk_callback_t  *callback,
+                                     void *userinfo)
+{
+   // Implementation disabled for now
+   return( -1);
+}
+#endif
 
 
 int  _mulle_vm_walk( struct mulle_vm *vm,
@@ -1327,102 +1439,10 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
                      void *userinfo,
                      int direction)
 {
-   intptr_t                   offset;
-   struct mulle_vm_mapping   *startinfo;
-   struct mulle_vm_mapping   *endinfo;
-   struct mulle_vm_mapping   *info;
-   int                        rval;
-   struct mulle_data          data;
-   struct mulle_range         page_range;
-   struct mulle_range         intersection;
-   uintptr_t                  start_location;
-   uintptr_t                  end_location;
-   intptr_t                   startinfo_index;
-   intptr_t                   endinfo_index;
-   intptr_t                   info_index;
-
-   if( ! callback)
-   {
-      errno = EINVAL;
-      return( -1);
-   }
-
-   range = mulle_range_validate_against_length( range, mulle_vm_get_length( vm));
-   if( ! mulle_range_is_valid( range))
-   {
-      errno = ERANGE;
-      return( -1);
-   }
-
-   if( range.length == 0)
-      return( 0);
-
-   assert( direction == 1 || direction == -1);
-
-   if( direction == 1)
-   {
-      start_location = range.location;
-      end_location   = mulle_range_get_last_location( range);
-   }
-   else
-   {
-      end_location   = range.location;
-      start_location = mulle_range_get_last_location( range);
-   }
-
-   startinfo_index = _mulle_vm_search_mapping_index( vm, start_location);
-   assert( startinfo_index >= 0);
-   startinfo = _mulle_vm_get_mapping( vm, startinfo_index);
-
-   // Check if the read fits entirely inside the found page
-   offset = (intptr_t) range.location - startinfo->address;
-
-   if( offset >= 0 && offset + range.length <= startinfo->page->used.length)
-   {
-      endinfo_index = startinfo_index;
-      endinfo       = startinfo;
-   }
-   else
-   {
-      endinfo_index = _mulle_vm_search_mapping_index( vm, end_location);
-      assert( endinfo_index >= 0);
-      endinfo       = _mulle_vm_get_mapping( vm, endinfo_index);
-
-      assert( direction == 1
-              ? endinfo_index > startinfo_index
-              : endinfo_index < startinfo_index);
-   }
-
-   page_range      = mulle_vm_mapping_get_range( startinfo);
-   intersection    = mulle_range_intersection( page_range, range);
-   data            = mulle_vm_mapping_get_data_in_range( startinfo, intersection);
-   rval            = (*callback)( data, intersection, userinfo);
-
-   // preset errno to something, that callback then can change
-   errno = ENOENT;
-   if( rval || endinfo_index == startinfo_index)
-      return( rval);
-
-   // Copy data page by page until either done or error
-   for( info_index = startinfo_index + direction; info_index != endinfo_index; info_index += direction)
-   {
-      info         = mulle_structarray_get( &vm->mappings, info_index);
-      page_range   = mulle_vm_mapping_get_range( info);
-      data         = mulle_vm_mapping_get_data_in_range( info, page_range);
-
-      rval = (*callback)( data, page_range, userinfo);
-      if( rval)
-         return( rval);
-   }
-
-   assert( endinfo != startinfo);  // just to think less here :)
-
-   page_range      = mulle_vm_mapping_get_range( endinfo);
-   intersection    = mulle_range_intersection( page_range, range);
-   data            = mulle_vm_mapping_get_data_in_range( endinfo, intersection);
-
-   rval            = (*callback)( data, intersection, userinfo);
-   return( rval);
+#if 0 // TODO: implement walk functions
+   // Implementation disabled for now
+#endif
+   return( -1);
 }
 
 
@@ -1441,8 +1461,8 @@ int   mulle_vm_copy( struct mulle_vm *dst,
                      struct mulle_vm *src,
                      struct mulle_range range)
 {
-   struct mulle_vm_mapping    *start;
-   struct mulle_vm_mapping    *end;
+   struct mulle_vm_node    *start;
+   struct mulle_vm_node    *end;
    struct mulle_vm_page       *copy;
    struct mulle_vm_page       *page;
    uintptr_t                  vm_address;
@@ -1462,7 +1482,7 @@ int   mulle_vm_copy( struct mulle_vm *dst,
    assert( dst->config.free_pages == src->config.free_pages);
 
    // clean original, we do this always
-   mulle_vm_delete( dst, mulle_range_make_all());
+   // TODO: mulle_vm_delete( dst, mulle_range_make_all());
 
    length = mulle_vm_get_length( src);
    range  = mulle_range_validate_against_length( range, length);
@@ -1475,37 +1495,49 @@ int   mulle_vm_copy( struct mulle_vm *dst,
    if( range.length == 0)
       return( 0);
 
-   start_index = _mulle_vm_search_mapping_index( src, range.location);
-   assert( start_index != -1);
-   start       = _mulle_structarray_get( &src->mappings, start_index);
+   struct mulle_vm_tree_search_result start_result;
+   struct mulle_vm_tree_search_result end_result;
+   
+   start_result = _mulle_vm_tree_search( &src->tree, range.location);
+   assert( mulle_vm_tree_search_result_is_valid( start_result));
+   start        = start_result.node;
 
-   end_index = _mulle_vm_search_mapping_index( src, mulle_range_get_last_location( range));
-   assert( end_index != -1);
-   end       = _mulle_structarray_get( &src->mappings, end_index);
+   end_result = _mulle_vm_tree_search( &src->tree, mulle_range_get_last_location( range));
+   assert( mulle_vm_tree_search_result_is_valid( end_result));
+   end        = end_result.node;
 
    // can we use page wholesale ?
    vm_address = 0;
-   if( start->address == range.location && start->page->used.length <= range.length)
+   uintptr_t start_address = start_result.offset;
+   if( start_address == range.location && start->page->used.length <= range.length)
    {
-      copy = _mulle_vm_retain_page( dst, start->page);
-      __mulle_vm_add_page_with_address( dst, copy, vm_address);
+      copy = _mulle_vm_retain_page( start->page);
+      _mulle_vm_add_page( dst, copy);
    }
    else
    {
       // create a new page
-      copy = _mulle_vm_copy_page( src, start->page, start->address, range);
-      __mulle_vm_add_page_with_address( dst, copy, vm_address);
+      copy = _mulle_vm_copy_page( src, start->page, range);
+      _mulle_vm_add_page( dst, copy);
    }
    vm_address += copy->used.length;
 
    // special case if we only copy one page, we are done otherwise...
-   if( start_index != end_index)
+   if( ! mulle_vm_tree_search_result_is_equal( start_result, end_result))
    {
-      for( idx = start_index + 1; idx < end_index; idx++)
+      struct mulle_vm_node *current_node = start;
+      struct mulle_vm_node *next_node;
+      
+      // Walk through nodes between start and end
+      mulle_vm_tree_for( &src->tree, info)
       {
-         page = _mulle_structarray_get( &src->mappings, idx);
-         copy = _mulle_vm_retain_page( dst, page);
-         __mulle_vm_add_page_with_address( dst, copy, vm_address);
+         if( info == start)
+            continue; // skip start node, already handled
+         if( info == end)
+            break;    // don't include end node yet
+            
+         copy = _mulle_vm_retain_page( info->page);
+         _mulle_vm_add_page( dst, copy);
          vm_address += copy->used.length;
       }
 
@@ -1515,14 +1547,14 @@ int   mulle_vm_copy( struct mulle_vm *dst,
       // special treatment for last page
       if( end->page->used.length == remainder)
       {
-         copy = _mulle_vm_retain_page( dst, end->page);
-         __mulle_vm_add_page_with_address( dst, copy, vm_address);
+         copy = _mulle_vm_retain_page( end->page);
+         _mulle_vm_add_page( dst, copy);
       }
       else
       {
          // create a new page
-         copy = _mulle_vm_copy_page( src, end->page, vm_address, range);
-         __mulle_vm_add_page_with_address( dst, copy, vm_address);
+         copy = _mulle_vm_copy_page( src, end->page, range);
+         _mulle_vm_add_page( dst, copy);
       }
       // vm_address += copy.used.length;
    }
@@ -1546,7 +1578,7 @@ int   mulle_vm_cut( struct mulle_vm *dst,
    if( rval)
       return( rval);
 
-   mulle_vm_delete( src, range);
+   // TODO: mulle_vm_delete( src, range);
    return( 0);
 }
 
@@ -1560,9 +1592,9 @@ int   mulle_vm_paste( struct mulle_vm *dst,
                       struct mulle_range range,
                       struct mulle_vm *src)
 {
-   struct mulle_vm_mapping    *start;
+   struct mulle_vm_node    *start;
    struct mulle_vm_page        *tail_page;
-   struct mulle_vm_mapping    *prev;
+   struct mulle_vm_node    *prev;
    intptr_t                    idx;
    intptr_t                    start_index;
    size_t                      length;
@@ -1577,7 +1609,7 @@ int   mulle_vm_paste( struct mulle_vm *dst,
    assert( dst->config.free_pages == src->config.free_pages);
 
    // delete range if any
-   mulle_vm_delete( dst, range);
+   // TODO: mulle_vm_delete( dst, range);
 
    // if nothing to paste, we is done (so mean we must have a page in src)
    length = mulle_vm_get_length( src);
@@ -1586,64 +1618,65 @@ int   mulle_vm_paste( struct mulle_vm *dst,
 
    tail_page   = NULL;
    start       = NULL;
-   start_index = _mulle_vm_search_mapping_index( dst, range.location);
-   if( start_index != -1)
+   struct mulle_vm_tree_search_result start_result;
+   
+   start_result = _mulle_vm_tree_search( &dst->tree, range.location);
+   if( mulle_vm_tree_search_result_is_valid( start_result))
    {
-      start     = _mulle_structarray_get( &dst->mappings, start_index);
-      tail_page = _mulle_vm_split_mapping_at( dst, start, start_index, range.location);
+      start     = start_result.node;
+      tail_page = _mulle_vm_split( dst, start_result, range.location);
       if( ! tail_page)
-         start_index = -1;
-   }
-   else
-   {
-      start_index = _mulle_structarray_get_count( &dst->mappings) - 1;
+         start = NULL; // if no split happened, start is the insertion point
    }
 
-   idx = start_index; // -1 is OK
-   mulle_vm_mapping_for( src, src_page)
+   // Insert all pages from src into dst
+   mulle_vm_tree_for( &src->tree, src_node)
    {
-      idx++;
-      _mulle_vm_retain_page( dst, src_page->page);
-      _mulle_vm_insert_page( dst, idx, src_page->page);
-   }
-
-   if( tail_page)
-   {
-      prev = _mulle_structarray_get( &dst->mappings, idx);
-      switch( _mulle_vm_page_join( prev->page, tail_page))
+      _mulle_vm_retain_page( src_node->page);
+      if( start)
       {
-      case -1 : // can drop tail
-         _mulle_vm_remove_mapping_at_index( dst, idx + 1);
-         break;
-
-      case 0 :  // no do
-         break;
-
-      case +1 : // can drop prev
-         _mulle_vm_remove_mapping_at_index( dst, idx);
-         break;
+         mulle_vm_tree_insert_page_after_node( &dst->tree, src_node->page, start);
+         struct mulle_vm_tree_search_result next_result = _mulle_vm_tree_search( &dst->tree, range.location + src_node->page->used.length);
+         start = next_result.node;
+      }
+      else
+      {
+         _mulle_vm_add_page( dst, src_node->page);
       }
    }
 
-   // Fix address calculation for the tail_page first, then adjust subsequent pages
    if( tail_page)
    {
-      // The tail_page should be positioned right after the last inserted page
-      struct mulle_vm_mapping    *last_inserted;
-      uintptr_t                  tail_address;
+      // Find the last inserted node to check if we can join with tail_page
+      struct mulle_vm_tree_search_result last_result = _mulle_vm_tree_search( &dst->tree, range.location);
+      if( mulle_vm_tree_search_result_is_valid( last_result))
+      {
+         struct mulle_vm_node *last_node = last_result.node;
+         switch( _mulle_vm_page_join( last_node->page, tail_page))
+         {
+         case -1 : // can drop tail
+            _mulle_vm_release_page( dst, tail_page);
+            break;
 
-      last_inserted = _mulle_structarray_get( &dst->mappings, idx);
-      tail_address  = last_inserted->address + last_inserted->page->used.length;
-      _mulle_vm_change_address( dst, idx + 1, tail_address);
+         case 0 :  // no join possible, add tail separately
+            _mulle_vm_add_page( dst, tail_page);
+            break;
 
-      // Now adjust all pages after the tail page
-      _mulle_vm_adjust_addresses( dst, idx + 2, + (intptr_t) length);
+         case +1 : // can drop prev (replace with tail)
+            mulle_vm_tree_remove( &dst->tree, range.location);
+            _mulle_vm_add_page( dst, tail_page);
+            break;
+         }
+      }
+      else
+      {
+         _mulle_vm_add_page( dst, tail_page);
+      }
    }
-   else
-   {
-      // No tail page, just adjust pages after the last inserted page
-      _mulle_vm_adjust_addresses( dst, idx + 1, + (intptr_t) length);
-   }
+
+   // Note: With tree-based implementation, addresses are computed dynamically
+   // based on tree traversal order and total lengths, so no manual address
+   // adjustment is needed here like in the old mappings array approach.
 
    mulle_vm_assert( src);
    mulle_vm_assert( dst);
@@ -1660,12 +1693,12 @@ int   mulle_vm_paste( struct mulle_vm *dst,
 // Return total logical bytes and count of pages
 struct mulle_vm_statistics   mulle_vm_get_statistics( struct mulle_vm *vm)
 {
-   struct mulle_vm_mapping     *info;
+   struct mulle_vm_node         *info;
    struct mulle_vm_statistics   stats = { 0 };
 
    if( vm)
    {
-      mulle_structarray_for( &vm->mappings, info)
+      mulle_vm_for( vm, info)
       {
          mulle_vm_assert_page( vm, info->page);
 

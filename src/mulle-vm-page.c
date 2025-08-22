@@ -192,25 +192,23 @@ int   _mulle_vm_page_join( struct mulle_vm_page *a, struct mulle_vm_page *b)
 }
 
 
-// range must either be adjacent or intersecting the currently used bytes
-// in page.
 //
-// range: range is vm_address, rnage
-// bytes:
+// offset must either be adjacent or intersecting the currently used bytes
+// in page.  If offset 0,  bytes will be prepended. If offset == used.length
+// then bytes will be appended.
 //
 // returns 0 on success
 // ENOSPC if won't fit
 // EINVAL if range is not adjacent or intersecting
 //
 int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
-                                  uintptr_t vm_address,
-                                  struct mulle_range range,
-                                  void *bytes)
+                                  uintptr_t offset,
+                                  void *bytes,
+                                  size_t length)
 {
    struct mulle_range   vm_used;
    struct mulle_range   intersection;
    size_t               available;
-   size_t               offset;
    char                 *new_front;
    char                 *old_front;
    char                 *new_insert;
@@ -223,16 +221,15 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
    if( page->retain_count != 0)
       return( EACCES);
 
-   if( page->size - page->used.length < range.length)
+   if( page->size - page->used.length < length)
       return( ENOSPC);
 
-   vm_used  = mulle_range_make( vm_address, page->used.length);
    // clean append to back
-   adjacent = mulle_range_get_max( vm_used) == range.location;
+   adjacent = mulle_range_get_max( page->used) == offset;
    if( adjacent)
    {
       available = mulle_vm_page_get_available_back( page);
-      if( available < range.length)
+      if( available < length)
       {
          // need to make room, by moving bytes to front (we move it all to 0)
          memmove( &((char *) page->bytes)[ 0],
@@ -243,18 +240,18 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
 
       memcpy( &((char *) page->bytes)[ mulle_range_get_max( page->used)],
               bytes,
-              range.length);
-      page->used.length  += range.length;
+              length);
+      page->used.length  += length;
       return( 0);
    }
 
-   adjacent = mulle_range_get_max( range) == vm_used.location;
+   adjacent = ! offset;
    // clean adjacent insert in front, or (special case) no split, the tail
    // of range intersects with 10
-   if( adjacent || range.location == vm_used.location)
+   if( adjacent)
    {
       available = mulle_vm_page_get_available_front( page);
-      if( available < range.length)
+      if( available < length)
       {
          // need to make room, by moving range to back (we move it all to end)
          memmove( &((char *) page->bytes)[ page->size - page->used.length],
@@ -263,21 +260,20 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
          page->used.location = page->size - page->used.length;
       }
 
-      page->used.location -= range.length;
+      page->used.location -= length;
 
       memcpy( &((char *) page->bytes)[ page->used.location],
               bytes,
-              range.length);
+              length);
 
-      page->used.length += range.length;
+      page->used.length += length;
 
       return( 0);
    }
 
 
-   // so we gots to have an intersection now
-   intersection = mulle_range_intersection( vm_used, range);
-   if( ! intersection.length)
+   // so we got's to have a split
+   if( ! mulle_range_contains_location( page->used, offset))
       return( EINVAL);
 
    //
@@ -318,25 +314,25 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
    // figure out, the amount we can move ahead
    //
    available = mulle_vm_page_get_available_front( page);
-   if( available > range.length)
-      available = range.length;
+   assert( available >= length);
+
+   if( available > length)
+      available = length;
 
    // figure out where the relative insertion point is from page->used.location
-   offset     = range.location - vm_address;
-
    old_front  = &((char *) page->bytes)[ page->used.location];
    old_middle = &((char *) old_front)[ offset];
 
    new_front  = &((char *) old_front)[ - (intptr_t) available];
    new_insert = &((char *) new_front)[ offset];
-   new_middle = &((char *) new_insert)[ range.length];
+   new_middle = &((char *) new_insert)[ length];
 
    memmove( new_front, old_front, offset);
    memmove( new_middle, old_middle, page->used.length - offset);
-   memcpy( new_insert, bytes, range.length);
+   memcpy( new_insert, bytes, length);
 
    page->used.location -= available;
-   page->used.length   += range.length;
+   page->used.length   += length;
 
    return( 0);
 }

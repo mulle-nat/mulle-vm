@@ -4,6 +4,7 @@
 #include "include.h"
 
 #include "mulle-vm-page.h"
+#include "mulle-vm-tree.h"
 #include <stdint.h>
 
 
@@ -96,24 +97,6 @@ struct mulle_vm_config     mulle_vm_config_default;
 
 
 /**
- * Mapping structure that associates a virtual memory address with a page.
- *
- * This structure represents the mapping between a virtual address space
- * and the actual page that contains the data. Mappings are local to a
- * specific VM instance, but the underlying pages can be shared between
- * multiple VMs.
- */
-struct mulle_vm_mapping
-{
-   /** Pointer to the actual page containing the data */
-   struct mulle_vm_page   *page;
-   
-   /** Virtual address in the VM's address space */
-   uintptr_t              address;
-};
-
-
-/**
  * Main virtual memory structure representing a VM instance.
  *
  * This structure contains all the state needed to manage a virtual memory
@@ -122,8 +105,8 @@ struct mulle_vm_mapping
  */
 struct mulle_vm
 {
-   /** Array of mulle_vm_mapping structures mapping virtual addresses to pages */
-   struct mulle_structarray    mappings;
+   /** Tree of mulle_vm_node structures defining memory ranges */
+   struct mulle_vm_tree        tree;
    
    /** Array of pointers to freed operating system pages for reuse */
    struct mulle_pointerarray   freed_ospages;
@@ -282,18 +265,10 @@ int  mulle_vm_walk_reverse( struct mulle_vm *vm,
  */
 static inline uintptr_t   mulle_vm_get_length( struct mulle_vm *vm)
 {
-   uintptr_t                  vm_address;
-   struct mulle_vm_mapping   *info;
-
    if( ! vm)
       return( 0);
 
-   info = _mulle_structarray_get_last( &vm->mappings);
-   if( ! info)
-      return( 0);
-
-   vm_address = info->address + info->page->used.length;
-   return( vm_address);
+   return( mulle_vm_tree_get_total_length( &vm->tree));
 }
 
 
@@ -415,90 +390,86 @@ struct mulle_vm_statistics
 MULLE__VM_GLOBAL
 struct mulle_vm_statistics   mulle_vm_get_statistics( struct mulle_vm *vm);
 
+
+
+
 /**
  **
  **
  **/
-struct mulle_vm_mappingenumerator
+/**
+ **
+ **
+ **/
+#define mulle_vm_enumerator     mulle_vm_treeenumerator
+
+
+static inline struct mulle_vm_enumerator
+   mulle_vm_enumerate( struct mulle_vm *vm)
 {
-   MULLE_STRUCTARRAYENUMERATOR_BASE;
-};
-
-
-static inline struct mulle_vm_mappingenumerator
-   mulle_vm_mapping_enumerate( struct mulle_vm *vm)
-{
-   struct mulle_structarrayenumerator   rover;
-
-   rover = mulle_structarray_enumerate( &vm->mappings);
-   return( *(struct mulle_vm_mappingenumerator *) &rover);
+   return( mulle_vm_tree_enumerate( vm ? &vm->tree : NULL));
 }
 
 
 // returns 1 if ok, fills *info, else returns 0, *info->page=NULL and *info->address=0
 static inline int
-   mulle_vm_mappingenumerator_next( struct mulle_vm_mappingenumerator *rover,
-                                     struct mulle_vm_mapping **info)
+   mulle_vm_enumerator_next( struct mulle_vm_enumerator *rover,
+                             void **info)
 {
-   return( mulle_structarrayenumerator_next( (struct mulle_structarrayenumerator *) rover,
-                                             (void **) info));
+   return( mulle_vm_treeenumerator_next( rover, info));
 }
+
 
 static inline void
-   mulle_vm_mappingenumerator_done( struct mulle_vm_mappingenumerator *rover)
+   mulle_vm_enumerator_done( struct mulle_vm_enumerator *rover)
 {
+   mulle_vm_treeenumerator_done( rover);
 }
 
 
-#define mulle_vm_mapping_for( vm_ptr, info)                                                       \
-   for( struct mulle_vm_mappingenumerator _rover__ ## info = mulle_vm_mapping_enumerate( vm_ptr), \
-           *_rover__ ## info ## __i = (void *) 0;                                                 \
-        ! _rover__ ## info ## __i;                                                                \
-        _rover__ ## info ## __i = ((void *) 1))                                                   \
-      for( struct mulle_vm_mapping *info;                                                         \
-           mulle_vm_mappingenumerator_next( &_rover__ ## info, &info); )
+#define mulle_vm_for( tree_ptr, info)                                                \
+   for( struct mulle_vm_enumerator _rover__ ## info = mulle_vm_enumerate( tree_ptr), \
+           *_rover__ ## info ## __i = (void *) 0;                                    \
+        ! _rover__ ## info ## __i;                                                   \
+        _rover__ ## info ## __i = ((void *) 1))                                      \
+      for( struct mulle_vm_node *info;                                               \
+           mulle_vm_enumerator_next( &_rover__ ## info, (void **) &info); )
 
 
 // reverse
-struct mulle_vm_mappingreverseenumerator
+#define mulle_vm_reverseenumerator     mulle_vm_treereverseenumerator
+
+
+static inline struct mulle_vm_reverseenumerator
+   mulle_vm_reverseenumerate( struct mulle_vm *vm)
 {
-   MULLE_STRUCTARRAYREVERSEENUMERATOR_BASE;
-};
-
-
-static inline struct mulle_vm_mappingreverseenumerator
-   mulle_vm_mapping_reverseenumerate( struct mulle_vm *vm)
-{
-   struct mulle_structarrayreverseenumerator   rover;
-
-   rover = mulle_structarray_reverseenumerate( &vm->mappings);
-   return( *(struct mulle_vm_mappingreverseenumerator *) &rover);
+   return( mulle_vm_tree_reverseenumerate( vm ? &vm->tree : NULL));
 }
 
 
 // returns 1 if ok, fills *info, else returns 0, *info->page=NULL and *info->address=0
 static inline int
-   mulle_vm_mappingreverseenumerator_next( struct mulle_vm_mappingreverseenumerator *rover,
-                                           struct mulle_vm_mapping **info)
+   mulle_vm_reverseenumerator_next( struct mulle_vm_reverseenumerator *rover,
+                                    void **info)
 {
-   return( mulle_structarrayreverseenumerator_next( (struct mulle_structarrayreverseenumerator *) rover,
-                                                    (void **) info));
+   return( mulle_vm_treereverseenumerator_next( rover, info));
 }
+
 
 static inline void
-   mulle_vm_mappingreverseenumerator_done( struct mulle_vm_mappingreverseenumerator *rover)
+   mulle_vm_reverseenumerator_done( struct mulle_vm_reverseenumerator *rover)
 {
+   mulle_vm_treereverseenumerator_done( rover);
 }
 
 
-#define mulle_vm_mapping_for_reverse( vm_ptr, info)                                                              \
-   for( struct mulle_vm_mappingreverseenumerator _rover__ ## info = mulle_vm_mapping_reverseenumerate( vm_ptr),  \
-           *_rover__ ## info ## __i = (void *) 0;                                                                \
-        ! _rover__ ## info ## __i;                                                                               \
-        _rover__ ## info ## __i = ((void *) 1))                                                                  \
-      for( struct mulle_vm_mapping *info;                                                                        \
-           mulle_vm_mappingreverseenumerator_next( &_rover__ ## info, &info); )
-
+#define mulle_vm_for_reverse( tree_ptr, info)                                                     \
+   for( struct mulle_vm_reverseenumerator _rover__ ## info = mulle_vm_reverseenumerate( tree_ptr), \
+           *_rover__ ## info ## __i = (void *) 0;                                                      \
+        ! _rover__ ## info ## __i;                                                                     \
+        _rover__ ## info ## __i = ((void *) 1))                                                        \
+      for( struct mulle_vm_node *info;                                                                 \
+           mulle_vm_reverseenumerator_next( &_rover__ ## info, (void **) &info); )
 
 /*
  * The following files are auto-generated.

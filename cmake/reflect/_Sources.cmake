@@ -16,4 +16,5 @@ src/mulle-vm.c
 src/mulle-vm-file.c
 src/mulle-vm-page.c
 src/mulle-vm-stdlib.c
+src/mulle-vm-tree.c
 )

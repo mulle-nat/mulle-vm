@@ -20,6 +20,7 @@
 #include "mulle-vm-file.h"
 #include "mulle-vm-page.h"
 #include "mulle-vm-stdlib.h"
+#include "mulle-vm-tree.h"
 
 
 #endif
