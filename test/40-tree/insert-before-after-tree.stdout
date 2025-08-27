@@ -1,0 +1,31 @@
+mulle-vm-tree Insert Before/After Tests
+=======================================
+Test 1: Tree initialization
+Tree initialized successfully
+
+Test 2: Create and add middle page
+Middle page added: "Middle" (length: 6)
+
+Test 3: Get middle node reference
+Got middle node reference successfully
+
+Test 4: Create and insert before page
+Before page inserted: "Before" (length: 6)
+
+Test 5: Create and insert after page
+After page inserted: "After" (length: 5)
+
+Test 6: Check tree total length
+Tree total length: 17 (expected: 17)
+SUCCESS: Tree length matches expected total
+
+Test 7: Enumerate pages to verify order
+Page 1: "Before" (length: 6)
+Page 2: "Middle" (length: 6)
+Page 3: "After" (length: 5)
+SUCCESS: Found expected 3 pages
+
+Test 8: Tree cleanup
+Tree destroyed successfully
+
+All insert before/after tests completed!

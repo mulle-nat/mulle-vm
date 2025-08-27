@@ -37,12 +37,146 @@
 #include "include-private.h"
 
 
-
 static struct
 {
-   struct mulle_storage   vm_pages;
-   mulle_thread_mutex_t   lock;
+   struct mulle_storage            vm_pages;
+   struct mulle_ospage_allocator   allocator;
+   struct mulle_pointerarray       freed_ospages;
+   size_t                          max_freed_ospages;
+   mulle_thread_mutex_t            lock;
 } global;
+
+
+size_t   mulle_vm_get_pagesize( void)
+{
+   return( global.allocator.pagesize);
+}
+
+
+// Helper to round size up to pagesize multiple
+static inline size_t   round_up_to_pagesize( size_t size, size_t pagesize)
+{
+   return( ((size + pagesize - 1) / pagesize) * pagesize);
+}
+
+
+static inline size_t   round_down_to_pagesize( size_t size, size_t pagesize)
+{
+   return( (size / pagesize) * pagesize);
+}
+
+
+void *   _mulle_vm_alloc_ospages( size_t size)
+{
+   void     *mem;
+   void     (*fail)( struct mulle_allocator *, void *, size_t)  MULLE_C_NO_RETURN;
+
+   mulle_thread_mutex_do( global.lock)
+   {
+      assert( size == round_up_to_pagesize( size, global.allocator.pagesize));
+
+      mem = NULL;
+      if( size == global.allocator.pagesize)
+      {
+         mem = mulle_pointerarray_pop( &global.freed_ospages);
+      }
+      if( ! mem)
+      {
+         mem  = (*global.allocator.alloc)( size); // hmm ...
+         fail = global.allocator.fail;
+      }
+   }
+
+   if( ! mem)
+      (*fail)( NULL, NULL, size);
+
+#ifdef DEBUG
+   mulle_memset_uint32( mem, 0x214E3A55, size);
+#endif
+   return( mem);
+}
+
+
+
+/**
+ **
+ **
+ **
+ */
+
+// the mulle_vm_page MUST have been removed from pages already!
+// (if you are freeing all the pages from mulle_vm_page)
+static void   _mulle_vm_free_ospages_unlocked( void *mem, size_t size)
+{
+   size_t   count;
+   size_t   avail;
+   int      rval;
+
+   rval = 0;
+   assert( size == round_down_to_pagesize( size, global.allocator.pagesize));
+
+   count = mulle_pointerarray_get_count( &global.freed_ospages);
+   assert( global.max_freed_ospages >= count);
+   avail = global.max_freed_ospages - count;
+   //
+   // freed_ospages individual pages for reuse
+   //
+   while( count < avail)
+   {
+      mulle_pointerarray_add( &global.freed_ospages, mem);
+      size -= global.allocator.pagesize;
+      if( ! size)
+         break;
+
+      mem = &((char *) mem)[ global.allocator.pagesize];
+      ++count;
+   }
+
+   if( size)
+   {
+      // free rest wholesale
+      rval = (*global.allocator.free)( mem, size);
+      if( rval)
+      {
+         // what to do ?
+         fprintf( stderr, "mulle-vm: page %p wrongly freed by mishaved thread ? (%d)\n", mem, rval);
+#ifdef DEBUG
+         abort();
+#endif
+      }
+   }
+}
+
+
+static void   mulle_vm_free_freed_ospages_unlocked( void)
+{
+   int     rval;
+   void    *page;
+
+   mulle_pointerarray_for( &global.freed_ospages, page)
+   {
+      rval = (*global.allocator.free)( page, global.allocator.pagesize);
+      if( rval)
+      {
+      // what to do ?
+         fprintf( stderr, "mulle-vm: page %p wrongly freed by mishaved thread ? (%d)\n",
+                           page, rval);
+#ifdef DEBUG
+         abort();
+#endif
+      }
+   }
+}
+
+
+void   mulle_vm_reset_freed_ospages( void)
+{
+   mulle_thread_mutex_do( global.lock)
+   {
+      mulle_vm_free_freed_ospages_unlocked();
+   }
+   mulle_pointerarray_reset( &global.freed_ospages);
+}
 
 
 struct mulle_vm_page   *mulle_vm_page_alloc( void)
@@ -61,31 +195,73 @@ void   mulle_vm_page_free( struct mulle_vm_page *page)
 {
    mulle_thread_mutex_do( global.lock)
    {
+      _mulle_vm_free_ospages_unlocked( page->bytes,page->size);
       _mulle_storage_free( &global.vm_pages, page);
    }
 }
 
 
-// we don't really care to leak check this, so use &mulle_allocator_stlib
-MULLE_C_CONSTRUCTOR( load)
-static void   load( void)
+
+
+
+/**
+ **
+ **
+ **
+ */
+struct mulle_vm_page *  mulle_vm_page_new_with_bytes( void *bytes,
+                                                      size_t length,
+                                                      unsigned int skew)
 {
-   mulle_thread_mutex_init( &global.lock);
-   _mulle_storage_init( &global.vm_pages, sizeof( struct mulle_vm_page),
-                                          alignof( struct mulle_vm_page),
-                                          16,
-                                          &mulle_allocator_stdlib);
+   size_t                 size;
+   char                   *mem;
+   size_t                 free_size;
+   struct mulle_range     range;
+   struct mulle_vm_page   *page;
+
+   assert( skew <= 100);
+
+   size = round_up_to_pagesize( length, mulle_vm_get_pagesize());
+   mem  = _mulle_vm_alloc_ospages( size);
+
+   free_size      = size - length;
+   range.location = free_size * skew / 100;
+   range.length   = length;
+
+   // copy block to middle (or offset from there) so we have space in front
+   // and back to add.
+   memcpy( &mem[ range.location], bytes, length);
+#ifdef DEBUG
+   mulle_memset_uint32( &mem[ 0], 0xFEEDFACE, range.location);
+   mulle_memset_uint32( &mem[ mulle_range_get_max( range)], 0xFEEDFACE, size - mulle_range_get_max( range));
+#endif
+
+   page = mulle_vm_page_alloc();
+   mulle_vm_page_init( page, mem, range, size);
+   return( page);
 }
 
 
-// this is nice for valgrind but not really needed
-MULLE_C_DESTRUCTOR( unload)
-static void   unload( void)
+// Static inline retain/release functions for page reference counting
+struct mulle_vm_page *mulle_vm_page_retain( struct mulle_vm_page *page)
 {
-   _mulle_storage_done( &global.vm_pages);
-   mulle_thread_mutex_done( &global.lock);
+   if( ! page)
+      return( NULL);
+
+   _mulle_atomic_pointer_increment( &page->retain_count);
+   return( page);
 }
 
+
+// MEMO: only tests should call this...
+void   mulle_vm_page_release( struct mulle_vm_page *page)
+{
+   if( ! page)
+      return;
+
+   if( ! _mulle_atomic_pointer_decrement( &page->retain_count))
+      mulle_vm_page_free( page);
+}
 
 
 /**
@@ -192,6 +368,7 @@ int   _mulle_vm_page_join( struct mulle_vm_page *a, struct mulle_vm_page *b)
 }
 
 
+
 //
 // offset must either be adjacent or intersecting the currently used bytes
 // in page.  If offset 0,  bytes will be prepended. If offset == used.length
@@ -206,23 +383,28 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
                                   void *bytes,
                                   size_t length)
 {
-   struct mulle_range   vm_used;
-   struct mulle_range   intersection;
-   size_t               available;
-   char                 *new_front;
-   char                 *old_front;
-   char                 *new_insert;
-   char                 *old_middle;
-   char                 *new_middle;
-   int                  adjacent;
+   size_t   available;
+   char     *new_front;
+   char     *old_front;
+   char     *new_insert;
+   char     *old_middle;
+   char     *new_middle;
+   int      adjacent;
 
    assert( page->retain_count == 0 && "can't modify shared page");
    // you can only change unshared pages
    if( page->retain_count != 0)
-      return( EACCES);
+   {
+      errno = EACCES;
+      return( -1);
+   }
 
-   if( page->size - page->used.length < length)
-      return( ENOSPC);
+   size_t actual_available = page->size - (page->used.location + page->used.length);
+   if( actual_available < length)
+   {
+      errno = ENOSPC;
+      return( -1);
+   }
 
    // clean append to back
    adjacent = mulle_range_get_max( page->used) == offset;
@@ -273,8 +455,12 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
 
 
    // so we got's to have a split
-   if( ! mulle_range_contains_location( page->used, offset))
-      return( EINVAL);
+   // offset must be within the used data range
+   if( offset > page->used.length)
+   {
+      errno = EINVAL;
+      return( -1);
+   }
 
    //
    // vm_address: 0x1000
@@ -311,9 +497,22 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
 
    //
    // need to make a hole
-   // figure out, the amount we can move ahead
+   // if there's not enough front space, try to create it by moving data to back
    //
    available = mulle_vm_page_get_available_front( page);
+   if( available < length)
+   {
+      // need to make room, by moving range to back (we move it all to end)
+      size_t total_available = page->size - page->used.length;
+      if( total_available >= length)
+      {
+         memmove( &((char *) page->bytes)[ page->size - page->used.length],
+                  &((char *) page->bytes)[ page->used.location],
+                  page->used.length);
+         page->used.location = page->size - page->used.length;
+         available = mulle_vm_page_get_available_front( page);
+      }
+   }
    assert( available >= length);
 
    if( available > length)
@@ -336,4 +535,87 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
 
    return( 0);
 }
+
+
+/*
+ *
+ *
+ */
+void   mulle_vm_set_ospage_allocator( struct mulle_ospage_allocator *allocator)
+{
+   mulle_thread_mutex_do( global.lock)
+   {
+      if( mulle_storage_get_count( &global.vm_pages) != 0
+          || mulle_pointerarray_get_count( &global.freed_ospages) != 0)
+      {
+         fprintf( stderr, "setup comes to late\n");
+         abort();
+      }
+
+      assert( allocator->alloc);
+      assert( allocator->free);
+      assert( allocator->pagesize);
+
+      global.allocator.alloc    = allocator->alloc;
+      global.allocator.free     = allocator->free;
+      global.allocator.pagesize = allocator->pagesize;
+      if( allocator->fail)
+         global.allocator.fail = allocator->fail;
+   }
+}
+
+
+void   mulle_vm_set_ospage_cachesize( size_t n_pages)
+{
+   mulle_thread_mutex_do( global.lock)
+   {
+      assert( n_pages >= mulle_pointerarray_get_count( &global.freed_ospages));
+
+      global.max_freed_ospages = n_pages;
+   }
+}
+
+
+MULLE_C_CONSTRUCTOR( load)
+static void   load( void)
+{
+   mulle_thread_mutex_init( &global.lock);
+   _mulle_storage_init( &global.vm_pages, sizeof( struct mulle_vm_page),
+                                          alignof( struct mulle_vm_page),
+                                          16,
+                                          &mulle_allocator_stdlib);
+   mulle_pointerarray_init( &global.freed_ospages, 16, &mulle_allocator_stdlib);
+
+   // ppl might overwrite this early, fine by us
+   if( ! global.allocator.alloc)
+   {
+      global.allocator = (struct mulle_ospage_allocator)
+      {
+         .alloc    = mulle_mmap_alloc_pages,
+         .free     = mulle_mmap_free_pages,
+         .pagesize = mulle_mmap_get_system_pagesize()
+      };
+      global.max_freed_ospages = 16;
+   }
+
+   // handle separately for debug convenience
+   if( ! global.allocator.fail)
+   {
+      global.allocator.fail = mulle_allocator_stdlib.fail;
+   }
+
+   assert( global.allocator.pagesize == mulle_pow2round( global.allocator.pagesize) && "mulle-vm: VM pagesize corrupted");
+}
+
+
+// this is nice for valgrind but not really needed
+MULLE_C_DESTRUCTOR( unload)
+static void   unload( void)
+{
+   mulle_vm_free_freed_ospages_unlocked();
+   mulle_pointerarray_done( &global.freed_ospages);
+   _mulle_storage_done( &global.vm_pages);
+   mulle_thread_mutex_done( &global.lock);
+}
+
 

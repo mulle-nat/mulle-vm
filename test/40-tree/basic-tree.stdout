@@ -1,0 +1,7 @@
+mulle-vm-tree Basic Tests
+========================
+Test 1: Tree init/done
+Tree initialized successfully
+Tree destroyed successfully
+
+All tests completed!

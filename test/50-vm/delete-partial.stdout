@@ -1,0 +1,32 @@
+=== Testing mulle_vm_delete partial scenarios ===
+VM initialized with pagesize=8, skew=25
+
+=== Test 1: Delete 3 bytes from front ===
+Initial VM length: 8 bytes
+Initial content: "ABCDEFGH"
+Deleting range {0, 3} from front
+VM length after front delete: 5 bytes
+SUCCESS: VM length decreased by 3 bytes
+Content after front delete: "DEFGH"
+SUCCESS: Content matches expected result
+
+=== Test 2: Delete 2 bytes from back ===
+Deleting range {3, 2} from back
+VM length after back delete: 3 bytes
+SUCCESS: VM length decreased by 2 bytes
+Final content after back delete: "DEF"
+SUCCESS: Final content matches expected result
+
+=== Test 3: Delete from middle of fresh page ===
+Fresh page content: "ABCDEFGH"
+Deleting range {2, 3} from middle
+VM length after middle delete: 5 bytes
+SUCCESS: VM length decreased by 3 bytes
+Content after middle delete: "ABFGH"
+SUCCESS: Middle delete content matches expected result
+** page 0 still in use
+** page 1 still in use
+** page 2 still in use
+** page 3 still in use
+
+=== All partial deletion tests completed successfully ===

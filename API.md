@@ -544,7 +544,7 @@ The page size in bytes
 struct mulle_vm vm;
 mulle_vm_init(&vm, &mulle_vm_config_default, NULL);
 
-size_t pagesize = mulle_vm_get_pagesize(&vm);
+size_t pagesize = mulle_vm_get_pagesize();
 printf("Page size: %zu bytes\n", pagesize);
 
 mulle_vm_done(&vm);

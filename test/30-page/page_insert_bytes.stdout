@@ -4,55 +4,55 @@ Testing _mulle_vm_page_insert_bytes function
 === Test: Clean Append ===
 Initial: used={5,3}, size=64
   Content: "ABC"
-Insert data: "DEF" range: location={13, 3}
+Insert data: "DEF" at offset 3
 Result: 0
-After append: used={5,6}, size=64
+After append: used={2,6}, size=64
   Content: "ABCDEF"
 
 === Test: Clean Prepend ===
 Initial: used={20,3}, size=64
   Content: "ABC"
-Insert data: "XYZ" range: location={7, 3}
+Insert data: "XYZ" at offset 0
 Result: 0
 After prepend: used={17,6}, size=64
   Content: "XYZABC"
 
-=== Test: Intersection Insert ===
+=== Test: Intersection Insert (offset 2) ===
 Initial: used={10,4}, size=64
   Content: "ABCD"
-Insert data: "XY" range: location={12, 2}
+Insert data: "XY" at offset 2
 Result: 0
 After intersection: used={8,6}, size=64
   Content: "ABXYCD"
 
-=== Test: Non-Adjacent (Invalid) ===
+=== Test: Non-Adjacent (Invalid offset 10) ===
 Initial: used={5,3}, size=64
   Content: "ABC"
-Insert data: "XYZ" range: location={20, 3}
-Result: 22 (EINVAL=22)
+Insert data: "XYZ" at offset 10
+Result: -1 (EINVAL=22)
 After failed insert: used={5,3}, size=64
   Content: "ABC"
 
 === Test: Insufficient Space ===
 Initial: used={2,3}, size=16
   Content: "ABC"
-Insert data: "TOO_LONG_TO_FIT" range: location={13, 15}
-Result: 28 (ENOSPC=28)
+Insert data: "TOO_LONG_TO_FIT" at offset 3
+Result: -1 (ENOSPC=28)
 After failed insert: used={2,3}, size=16
   Content: "ABC"
 
 === Test: Append with Compaction ===
 Initial: used={25,3}, size=32
   Content: "ABC"
-Insert data: "DEF" range: location={13, 3}
+Insert data: "DEF" at offset 3
 Result: 0
-After append with compaction: used={25,6}, size=32
+After append with compaction: used={22,6}, size=32
   Content: "ABCDEF"
 
 === Test: Prepend with Compaction ===
 Initial: used={0,3}, size=32
   Content: "ABC"
-Insert data: "XYZ" range: location={7, 3}
+Insert data: "XYZ" at offset 0
 Result: 0
 After prepend with compaction: used={26,6}, size=32
   Content: "XYZABC"
@@ -60,7 +60,7 @@ After prepend with compaction: used={26,6}, size=32
 === Test: Edge Cases ===
 Initial (zero-length test): used={10,3}, size=64
   Content: "ABC"
-Insert data: "" range: location={13, 0}
+Insert zero-length data at offset 3
 Zero-length insert result: 0
 After zero-length insert: used={10,3}, size=64
   Content: "ABC"
@@ -68,14 +68,22 @@ After zero-length insert: used={10,3}, size=64
 --- Insert at exact start ---
 Initial (start test): used={10,3}, size=64
   Content: "ABC"
-Insert data: "XY" range: location={10, 2}
+Insert data: "XY" at offset 0
 Insert at start result: 0
 After start insert: used={8,5}, size=64
   Content: "XYABC"
 
+=== Test: Middle Insert ===
+Initial: used={0,4}, size=64
+  Content: "ABCD"
+Insert data: "12" at offset 2
+Result: 0
+After middle insert: used={58,6}, size=64
+  Content: "AB12CD"
+
 === Test: Empty Page Operations ===
 Initial empty page: used={0,0}, size=64
-Insert data: "FIRST" range: location={100, 5}
+Insert data: "FIRST" at offset 0
 Result: 0
 After insert to empty page: used={0,5}, size=64
   Content: "FIRST"

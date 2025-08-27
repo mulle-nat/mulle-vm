@@ -1,0 +1,20 @@
+=== Testing mulle_vm_insert page split scenario ===
+VM initialized with pagesize=8, skew=25
+
+Step 1: Appending 5 bytes of initial data...
+VM length after append: 5 bytes
+
+Step 2: Attempting to insert 9 bytes at offset 2...
+SUCCESS: Insert split the page as expected
+New VM length: 14 bytes
+
+Step 3: Testing smaller insert that should fit...
+SUCCESS: Small insert worked as expected
+Final VM length: 15 bytes
+** page 0 still in use
+** page 1 still in use
+** page 2 still in use
+** page 3 still in use
+** page 4 still in use
+
+=== Test completed ===

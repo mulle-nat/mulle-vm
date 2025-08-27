@@ -1,0 +1,32 @@
+mulle-vm Insert Page Utilization Tests
+======================================
+Test 1: Initialize VM and add first page
+First page data: "12345" (5 bytes in 8-byte page)
+
+Test 2: Add second page
+Second page data: "abcde" (5 bytes in 8-byte page)
+VM length after two pages: 10 bytes
+Initial content: "12345abcde"
+
+Test 3: Insert data at boundary with page utilization
+Inserting "XYZTOP" (6 bytes) at position 5
+Available space: Page1 has 3 bytes free, Page2 has 3 bytes free (total 6 bytes)
+Insert operation completed successfully
+
+Test 4: Verify result and page count
+Final VM length: 16 bytes (expected: 16)
+Final content: "12345XYZTOPabcde"
+SUCCESS: Content matches expected result
+
+Test 5: Verify page count optimization
+Total pages used: 2 (should be 2 if optimization worked)
+SUCCESS: Page utilization optimization worked - no new page created
+
+Test 6: VM cleanup
+** page 0 still in use
+** page 1 still in use
+** page 2 still in use
+** page 3 still in use
+VM destroyed successfully
+
+All insert page utilization tests completed!

@@ -114,60 +114,102 @@ static inline void  mulle_vm_tree_reset( struct mulle_vm_tree *tree)
 
 
 MULLE__VM_GLOBAL
-void   _mulle_vm_tree_add( struct mulle_vm_tree *tree,
-                          struct mulle_vm_page *page);
+struct mulle_vm_node *   _mulle_vm_tree_add_page( struct mulle_vm_tree *tree,
+                                                  struct mulle_vm_page *page);
 
 static inline
-void   mulle_vm_tree_add( struct mulle_vm_tree *tree,
-                         struct mulle_vm_page *page)
+struct mulle_vm_node *   mulle_vm_tree_add_page( struct mulle_vm_tree *tree,
+                                                struct mulle_vm_page *page)
 {
    if( ! tree)
-      return;
+      return( NULL);
 
-   _mulle_vm_tree_add( tree, page);
+   return( _mulle_vm_tree_add_page( tree, page));
 }
 
 
 
 MULLE__VM_GLOBAL
-int   _mulle_vm_tree_insert_page_after_node( struct mulle_rbtree *tree,
-                                             struct mulle_vm_page *page,
-                                             struct mulle_vm_node *node);
+struct mulle_vm_node *   _mulle_vm_tree_insert_page_after_node( struct mulle_rbtree *tree,
+                                                                struct mulle_vm_page *page,
+                                                                struct mulle_vm_node *node);
 
-static inline int
+static inline struct mulle_vm_node *
    mulle_vm_tree_insert_page_after_node( struct mulle_vm_tree *tree,
                                          struct mulle_vm_page *page,
                                          struct mulle_vm_node *node)
 {
    if( ! tree)
-      return( -1);
+      return( NULL);
    return( _mulle_vm_tree_insert_page_after_node( (struct mulle_rbtree *) tree, page, node));
 }
 
-MULLE__VM_GLOBAL
-int   _mulle_vm_tree_insert_page_before_node( struct mulle_rbtree *tree,
-                                              struct mulle_vm_page *page,
-                                              struct mulle_vm_node *node);
 
-static inline int
+MULLE__VM_GLOBAL
+struct mulle_vm_node *
+   _mulle_vm_tree_insert_page_before_node( struct mulle_rbtree *tree,
+                                           struct mulle_vm_page *page,
+                                           struct mulle_vm_node *node);
+
+static inline struct mulle_vm_node *
    mulle_vm_tree_insert_page_before_node( struct mulle_vm_tree *tree,
                                           struct mulle_vm_page *page,
                                           struct mulle_vm_node *node)
 {
    if( ! tree)
-      return( -1);
+      return( NULL);
    return( _mulle_vm_tree_insert_page_before_node( (struct mulle_rbtree *) tree, page, node));
 }
+
+
+
+// exhaustive and bad!!
+MULLE__VM_GLOBAL
+MULLE_C_NONNULL_FIRST
+int   _mulle_vm_tree_remove_page( struct mulle_vm_tree *tree, struct mulle_vm_page *page);
+
+// Add mulle_vm_tree_remove
+static inline int
+   mulle_vm_tree_remove_page( struct mulle_vm_tree *tree, struct mulle_vm_page *page)
+{
+   if( ! tree)
+      return( 0);
+
+   return( _mulle_vm_tree_remove_page( tree, page));
+}
+
+
+
+MULLE__VM_GLOBAL
+MULLE_C_NONNULL_FIRST
+int   _mulle_vm_tree_remove_node( struct mulle_vm_tree *tree, struct mulle_vm_node *node);
+
+
+// Add mulle_vm_tree_remove
+static inline int
+   mulle_vm_tree_remove_node( struct mulle_vm_tree *tree, struct mulle_vm_node *node)
+{
+   if( ! tree)
+      return( 0);
+
+   return( _mulle_vm_tree_remove_node( tree, node));
+}
+
+
+MULLE__VM_GLOBAL
+MULLE_C_NONNULL_FIRST
+int   _mulle_vm_tree_remove( struct mulle_vm_tree *tree, uintptr_t position);
 
 // Add mulle_vm_tree_remove
 static inline int
    mulle_vm_tree_remove( struct mulle_vm_tree *tree, uintptr_t position)
 {
    if( ! tree)
-      return( -1);
-   // Simple stub - not implemented yet
-   return( -1);
+      return( 0);
+
+   return( _mulle_vm_tree_remove( tree, position));
 }
+
 
 // Search result helper functions
 static inline int
@@ -175,6 +217,7 @@ static inline int
 {
    return( result.node != NULL);
 }
+
 
 static inline struct mulle_rbnode *
    mulle_vm_tree_search_result_get_rbnode( struct mulle_vm_tree_search_result result)
@@ -187,11 +230,13 @@ static inline struct mulle_rbnode *
    return( (struct mulle_rbnode *) ((char *) result.node - offsetof( struct mulle_rbnode, payload)));
 }
 
+
 static inline struct mulle_vm_node *
-   mulle_vm_tree_search_result_get_vm_node( struct mulle_vm_tree_search_result result)
+   mulle_vm_tree_search_result_get_node( struct mulle_vm_tree_search_result result)
 {
    return( result.node);
 }
+
 
 static inline struct mulle_vm_page *
    mulle_vm_tree_search_result_get_page( struct mulle_vm_tree_search_result result)
@@ -201,6 +246,7 @@ static inline struct mulle_vm_page *
    return( result.node->page);
 }
 
+
 static inline uintptr_t
    mulle_vm_tree_search_result_get_offset( struct mulle_vm_tree_search_result result)
 {
@@ -209,13 +255,33 @@ static inline uintptr_t
 
 // Function to get rbnode from vm_node
 static inline struct mulle_rbnode *
-   mulle_vm_node_get_rbnode( struct mulle_vm_node *node)
+   _mulle_vm_node_get_rbnode( struct mulle_vm_node *node)
 {
    // The rbnode contains the vm_node as extra data
    // The extra data starts at &rbnode->payload
    // So we need to get back to the rbnode from the node
    return( (struct mulle_rbnode *) ((char *) node - offsetof( struct mulle_rbnode, payload)));
 }
+
+
+static inline struct mulle_vm_node *
+   _mulle_vm_rbnode_get_vm_node( struct mulle_rbnode *rbnode)
+{
+   return( (struct mulle_vm_node *) ((char *) rbnode + offsetof( struct mulle_rbnode, payload)));
+}
+
+
+// Function to get rbnode from vm_node
+static inline struct mulle_vm_page *
+   _mulle_vm_node_get_page( struct mulle_vm_node *node)
+{
+   // The rbnode contains the vm_node as extra data
+   // The extra data starts at &rbnode->payload
+   // So we need to get back to the rbnode from the node
+   return( node->page);
+}
+
+
 
 static inline int
    mulle_vm_tree_search_result_is_equal( struct mulle_vm_tree_search_result result,
@@ -224,6 +290,49 @@ static inline int
    return( result.node == other.node && result.offset == other.offset);
 }
 
+
+static inline struct mulle_vm_node *
+   mulle_vm_tree_previous_node( struct mulle_vm_tree *tree,
+                                struct mulle_vm_node *node)
+{
+   struct mulle__rbtree   *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle_rbnode    *rbnode;
+   struct mulle_rbnode    *prev_rbnode;
+   struct mulle_vm_node   *previous;
+
+   if( ! tree || ! node)
+      return( NULL);
+
+   rbnode      = _mulle_vm_node_get_rbnode( node);
+   prev_rbnode = _mulle__rbtree_previous_node( rb__tree, rbnode);
+   if( prev_rbnode == _mulle__rbtree_get_nil_node( rb__tree))
+      return( NULL);
+
+   previous = _mulle_vm_rbnode_get_vm_node( prev_rbnode);
+   return( previous);
+}
+
+
+static inline struct mulle_vm_node *
+   mulle_vm_tree_next_node( struct mulle_vm_tree *tree,
+                            struct mulle_vm_node *node)
+{
+   struct mulle__rbtree   *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle_rbnode    *rbnode;
+   struct mulle_rbnode    *next_rbnode;
+   struct mulle_vm_node   *next;
+
+   if( ! tree || ! node)
+      return( NULL);
+
+   rbnode      = _mulle_vm_node_get_rbnode( node);
+   next_rbnode = _mulle__rbtree_previous_node(rb__tree, rbnode);
+   if( next_rbnode == _mulle__rbtree_get_nil_node( rb__tree))
+      return( NULL);
+
+   next = _mulle_vm_rbnode_get_vm_node( next_rbnode);
+   return( next);
+}
 
 
 
@@ -263,9 +372,9 @@ static inline struct mulle_vm_treeenumerator
 // returns 1 if ok, fills *info, else returns 0, *info->page=NULL and *info->address=0
 static inline int
    mulle_vm_treeenumerator_next( struct mulle_vm_treeenumerator *rover,
-                                 void **info)
+                                 struct mulle_vm_node **node)
 {
-   return( _mulle_rbtreeenumerator_next( rover, info));
+   return( _mulle_rbtreeenumerator_next( rover, (void **) node));
 }
 
 
@@ -276,13 +385,13 @@ static inline void
 }
 
 
-#define mulle_vm_tree_for( tree_ptr, info)                                                    \
-   for( struct mulle_vm_treeenumerator _rover__ ## info = mulle_vm_tree_enumerate( tree_ptr), \
-           *_rover__ ## info ## __i = (void *) 0;                                             \
-        ! _rover__ ## info ## __i;                                                            \
-        _rover__ ## info ## __i = ((void *) 1))                                               \
-      for( struct mulle_vm_node *info;                                                        \
-           mulle_vm_treeenumerator_next( &_rover__ ## info, (void **) &info); )
+#define mulle_vm_tree_for( tree_ptr, node)                                                    \
+   for( struct mulle_vm_treeenumerator _rover__ ## node = mulle_vm_tree_enumerate( tree_ptr), \
+           *_rover__ ## node ## __i = (void *) 0;                                             \
+        ! _rover__ ## node ## __i;                                                            \
+        _rover__ ## node ## __i = ((void *) 1))                                               \
+      for( struct mulle_vm_node *node;                                                        \
+           mulle_vm_treeenumerator_next( &_rover__ ## node, &node); )
 
 
 // reverse
@@ -299,9 +408,9 @@ static inline struct mulle_vm_treereverseenumerator
 // returns 1 if ok, fills *info, else returns 0, *info->page=NULL and *info->address=0
 static inline int
    mulle_vm_treereverseenumerator_next( struct mulle_vm_treereverseenumerator *rover,
-                                        void **info)
+                                        struct mulle_vm_node **node)
 {
-   return( _mulle_rbtreereverseenumerator_next( rover, info));
+   return( _mulle_rbtreereverseenumerator_next( rover, (void **) node));
 }
 
 
@@ -313,11 +422,11 @@ static inline void
 
 
 #define mulle_vm_tree_for_reverse( tree_ptr, info)                                                          \
-   for( struct mulle_vm_treereverseenumerator _rover__ ## info = mulle_vm_tree_reverseenumerate( tree_ptr), \
-           *_rover__ ## info ## __i = (void *) 0;                                                           \
-        ! _rover__ ## info ## __i;                                                                          \
-        _rover__ ## info ## __i = ((void *) 1))                                                             \
-      for( struct mulle_vm_node *info;                                                                      \
-           mulle_vm_treereverseenumerator_next( &_rover__ ## info, (void **) &info); )
+   for( struct mulle_vm_treereverseenumerator _rover__ ## node = mulle_vm_tree_reverseenumerate( tree_ptr), \
+           *_rover__ ## node ## __i = (void *) 0;                                                           \
+        ! _rover__ ## node ## __i;                                                                          \
+        _rover__ ## node ## __i = ((void *) 1))                                                             \
+      for( struct mulle_vm_node *node;                                                                      \
+           mulle_vm_treereverseenumerator_next( &_rover__ ## info, &node); )
 
 #endif

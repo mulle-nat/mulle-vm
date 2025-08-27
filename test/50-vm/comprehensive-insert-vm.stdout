@@ -1,0 +1,34 @@
+mulle-vm Comprehensive Insert Tests
+===================================
+
+Test 1: Empty VM prepend
+SUCCESS: Empty VM prepend - "Hello"
+
+Test 2: Prepend to existing content
+SUCCESS: Prepend - "World Hello"
+
+Test 3: Append to existing content
+SUCCESS: Append - "World Hello!"
+
+Test 4: Middle insertion within page
+SUCCESS: Middle insert - "World Hello Beautiful!"
+
+Test 5: Insert at specific positions
+SUCCESS: Position insertions - "World- Hello- Beautiful!"
+
+Test 6: Large data insertion (forces new page)
+SUCCESS: Large data insertion - 81 bytes
+
+Test 7: Boundary conditions
+SUCCESS: Boundary insertions - "BoundaryTest"
+
+Test 8: Multiple small insertions
+SUCCESS: Multiple small insertions - "1B2a3s4e"
+
+Test 9: Empty string insertion
+SUCCESS: Empty string insertion (no-op)
+
+Test 10: Statistics verification
+SUCCESS: Statistics match - vm_size=8
+
+All comprehensive insert tests completed successfully!

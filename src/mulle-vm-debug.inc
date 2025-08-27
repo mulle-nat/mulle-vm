@@ -106,20 +106,23 @@ static void   debug_check_vm( struct mulle_vm *vm)
 
 struct mulle_vm_config   mulle_vm_debug_config =
 {
-   .alloc_pages = debug_alloc_pages,
-   .free_pages  = debug_free_pages,
    .shutdown    = debug_check_vm,
-   .pagesize    = DEBUG_PAGE_SIZE,
    .skew        = MULLE__VM_SKEW_DEFAULT
 };
 
 
-
-struct mulle_vm_config   mulle_vm_debug_nocheck_config =
+struct mulle_ospage_allocator    mulle_debug_ospage_allocator =
 {
-   .alloc_pages = debug_alloc_pages,
-   .free_pages  = debug_free_pages,
-   .shutdown    = 0,
-   .pagesize    = DEBUG_PAGE_SIZE,
-   .skew        = MULLE__VM_SKEW_DEFAULT
+   .alloc     = debug_alloc_pages,
+   .free      = debug_free_pages,
+   .pagesize  = DEBUG_PAGE_SIZE
 };
+
+
+MULLE_C_CONSTRUCTOR( load)
+static void   load( void)
+{
+   mulle_vm_set_ospage_allocator( &mulle_debug_ospage_allocator);
+   mulle_vm_set_ospage_cachesize( 0);
+}
+

@@ -1,0 +1,47 @@
+mulle-vm-tree Edge Cases Tests
+==============================
+Test 1: Empty tree enumeration
+SUCCESS: Empty tree enumeration works correctly
+
+Test 2: Empty tree total length
+SUCCESS: Empty tree has total length 0
+
+Test 3: Empty tree search
+SUCCESS: Search on empty tree returns invalid result
+
+Test 4: Get allocator
+SUCCESS: Got allocator from tree
+
+Test 5: Add pages for search testing
+Added 3 pages: \"Hello\" + \"World\" + \"!\" = 11 bytes total
+
+Test 6: Position-based search
+SUCCESS: Search at position 0 found first page, offset 0
+SUCCESS: Search at position 3 found first page, offset 3
+SUCCESS: Search at position 5 found second page, offset 0
+SUCCESS: Search at position 10 found third page, offset 0
+SUCCESS: Search beyond end returned NULL
+
+Test 7: Reverse enumeration
+Reverse Page 1: \"!\"
+Reverse Page 2: \"World\"
+Reverse Page 3: \"Hello\"
+SUCCESS: Reverse enumeration found 3 pages
+
+Test 8: Search result helper functions
+SUCCESS: Search result helpers work correctly
+
+Test 9: Tree reset
+Length before reset: 11
+SUCCESS: Tree reset cleared all pages (length = 0)
+
+Test 10: Enumeration after reset
+SUCCESS: Enumeration after reset is empty
+
+Test 11: NULL tree handling
+SUCCESS: NULL tree handling works correctly
+
+Test 12: Tree cleanup
+Tree destroyed successfully
+
+All edge cases tests completed!

@@ -1,0 +1,25 @@
+mulle-vm Insert/Prepend Tests
+=============================
+Test 1: VM initialization and initial data
+Initial data: "World!" (6 bytes)
+SUCCESS: Initial data verified: "World!"
+
+Test 2: Insert data at address 0 (prepending)
+Inserting "Hello, " (7 bytes) at address 0
+Insert operation completed successfully
+
+Test 3: Verify complete result
+Complete content: "Hello, World!" (13 bytes)
+SUCCESS: Content matches expected result
+
+Test 4: Verify individual parts
+SUCCESS: Prepended part correct: "Hello, "
+SUCCESS: Original part correct: "World!"
+
+Test 5: Verify VM total length
+SUCCESS: VM length is correct: 13 bytes
+
+Test 6: VM cleanup
+VM destroyed successfully
+
+All insert/prepend tests completed!

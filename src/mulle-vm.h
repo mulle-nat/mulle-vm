@@ -61,17 +61,8 @@ struct mulle_vm;
  */
 struct mulle_vm_config
 {
-   /** Memory allocation function for pages. If NULL, uses mulle_mmap_alloc_pages. */
-   void     *(*alloc_pages)( size_t size);
-   
-   /** Memory deallocation function for pages. If NULL, uses mulle_mmap_free_pages. */
-   int      (*free_pages)( void *p, size_t size);
-   
    /** Optional shutdown callback called during mulle_vm_done(). */
    void     (*shutdown)( struct mulle_vm *vm);
-   
-   /** Size of each page in bytes. Default is MULLE__VM_PAGESIZE_DEFAULT (0x4000). */
-   size_t   pagesize;
    
    /** Skew parameter for address calculation. Default is MULLE__VM_SKEW_DEFAULT (25). */
    size_t   skew;
@@ -85,9 +76,7 @@ struct mulle_vm_config
  * Default configuration for mulle-vm instances.
  *
  * Contains sensible defaults for most use cases:
- * - pagesize: MULLE__VM_PAGESIZE_DEFAULT (0x4000)
  * - skew: MULLE__VM_SKEW_DEFAULT (25)
- * - alloc_pages/free_pages: NULL (uses mulle_mmap_alloc_pages/free)
  * - shutdown: NULL (no custom shutdown)
  * - cachesize: 0
  */
@@ -107,9 +96,6 @@ struct mulle_vm
 {
    /** Tree of mulle_vm_node structures defining memory ranges */
    struct mulle_vm_tree        tree;
-   
-   /** Array of pointers to freed operating system pages for reuse */
-   struct mulle_pointerarray   freed_ospages;
    
    /** Configuration parameters for this VM instance */
    struct mulle_vm_config      config;
@@ -158,20 +144,6 @@ void   mulle_vm_done( struct mulle_vm *vm);
 MULLE__VM_GLOBAL
 void   mulle_vm_reset( struct mulle_vm *vm);
 
-
-/**
- * Get the page size of a VM instance.
- *
- * Returns the configured page size for the given VM. If vm is NULL,
- * returns the default page size (MULLE__VM_PAGESIZE_DEFAULT).
- *
- * @param vm Pointer to the VM structure, or NULL for default
- * @return The page size in bytes
- */
-static inline size_t   mulle_vm_get_pagesize( struct mulle_vm *vm)
-{
-   return( vm ? vm->config.pagesize : MULLE__VM_PAGESIZE_DEFAULT);
-}
 
 
 /*
@@ -222,7 +194,7 @@ int  mulle_vm_walk( struct mulle_vm *vm,
                         void *userinfo,
                         int direction);
    if( ! vm)
-      return( ENOENT);
+      return( 0);
    return( _mulle_vm_walk( vm, range, callback, userinfo, +1));
 }
 
@@ -255,7 +227,7 @@ int  mulle_vm_walk_reverse( struct mulle_vm *vm,
                         int direction);
 
    if( ! vm)
-      return( ENOENT);
+      return( 0);
    return( _mulle_vm_walk( vm, range, callback, userinfo, -1));
 }
 
@@ -271,6 +243,12 @@ static inline uintptr_t   mulle_vm_get_length( struct mulle_vm *vm)
    return( mulle_vm_tree_get_total_length( &vm->tree));
 }
 
+
+static inline struct mulle_vm_page  *
+   _mulle_vm_new_page_with_bytes( struct mulle_vm *vm, void *bytes, size_t length)
+{
+   return( mulle_vm_page_new_with_bytes( bytes, length, vm->config.skew));
+}
 
 //
 // Main: optimized read
@@ -335,14 +313,35 @@ static inline void *
 
 
 MULLE__VM_GLOBAL
+MULLE_C_NONNULL_FIRST_THIRD
+int   _mulle_vm_insert( struct mulle_vm *vm,
+                        struct mulle_range range,
+                        void *bytes);
+
+static inline
 int   mulle_vm_insert( struct mulle_vm *vm,
                        struct mulle_range range,
-                       void *bytes);
+                       void *bytes)
+{
+   if( ! vm || ! bytes)
+      return( 0);
+
+   return( _mulle_vm_insert( vm, range, bytes));
+}
+
 
 MULLE__VM_GLOBAL
-int   mulle_vm_append( struct mulle_vm *vm,
+MULLE_C_NONNULL_FIRST_SECOND
+void  _mulle_vm_append( struct mulle_vm *vm,
                        void *bytes,
                        size_t length);
+
+static inline void   mulle_vm_append( struct mulle_vm *vm, void *bytes, size_t length)
+{
+   if( ! vm || ! bytes)
+      return;
+   _mulle_vm_append( vm, bytes, length);
+}
 
 
 // this deletes the range from the vm, some pages will be evicted
@@ -356,7 +355,6 @@ void   mulle_vm_delete( struct mulle_vm *vm,
 // copy range pages to dst (shared). These pages will be appended,
 // in general you will want to reset dst before calling mulle_vm_copy
 //
-// returns 0 on success, else some error code (usually ERANGE)
 MULLE__VM_GLOBAL
 int  mulle_vm_copy( struct mulle_vm *dst,
                     struct mulle_vm *src,
@@ -393,13 +391,9 @@ struct mulle_vm_statistics   mulle_vm_get_statistics( struct mulle_vm *vm);
 
 
 
+
 /**
- **
- **
- **/
-/**
- **
- **
+ ** Enumerates pages. If you need nodes use the mulle_vm_tree.
  **/
 #define mulle_vm_enumerator     mulle_vm_treeenumerator
 
@@ -414,9 +408,18 @@ static inline struct mulle_vm_enumerator
 // returns 1 if ok, fills *info, else returns 0, *info->page=NULL and *info->address=0
 static inline int
    mulle_vm_enumerator_next( struct mulle_vm_enumerator *rover,
-                             void **info)
+                             struct mulle_vm_page **page)
 {
-   return( mulle_vm_treeenumerator_next( rover, info));
+   struct mulle_vm_node   *node;
+
+   if( ! mulle_vm_treeenumerator_next( rover, &node))
+   {
+      *page = NULL;
+      return( 0);
+   }
+
+   *page = node->page;
+   return( 1);
 }
 
 
@@ -427,13 +430,13 @@ static inline void
 }
 
 
-#define mulle_vm_for( tree_ptr, info)                                                \
-   for( struct mulle_vm_enumerator _rover__ ## info = mulle_vm_enumerate( tree_ptr), \
-           *_rover__ ## info ## __i = (void *) 0;                                    \
-        ! _rover__ ## info ## __i;                                                   \
-        _rover__ ## info ## __i = ((void *) 1))                                      \
-      for( struct mulle_vm_node *info;                                               \
-           mulle_vm_enumerator_next( &_rover__ ## info, (void **) &info); )
+#define mulle_vm_for( tree_ptr, page)                                                \
+   for( struct mulle_vm_enumerator _rover__ ## page = mulle_vm_enumerate( tree_ptr), \
+           *_rover__ ## page ## __i = (void *) 0;                                    \
+        ! _rover__ ## page ## __i;                                                   \
+        _rover__ ## page ## __i = ((void *) 1))                                      \
+      for( struct mulle_vm_page  *page;                                              \
+           mulle_vm_enumerator_next( &_rover__ ## page, &page); )
 
 
 // reverse
@@ -450,9 +453,18 @@ static inline struct mulle_vm_reverseenumerator
 // returns 1 if ok, fills *info, else returns 0, *info->page=NULL and *info->address=0
 static inline int
    mulle_vm_reverseenumerator_next( struct mulle_vm_reverseenumerator *rover,
-                                    void **info)
+                                    struct mulle_vm_page **page)
 {
-   return( mulle_vm_treereverseenumerator_next( rover, info));
+   struct mulle_vm_node   *node;
+
+   if( ! mulle_vm_treereverseenumerator_next( rover, &node))
+   {
+      *page = NULL;
+      return( 0);
+   }
+
+   *page = node->page;
+   return( 1);
 }
 
 
@@ -463,13 +475,13 @@ static inline void
 }
 
 
-#define mulle_vm_for_reverse( tree_ptr, info)                                                     \
-   for( struct mulle_vm_reverseenumerator _rover__ ## info = mulle_vm_reverseenumerate( tree_ptr), \
-           *_rover__ ## info ## __i = (void *) 0;                                                      \
-        ! _rover__ ## info ## __i;                                                                     \
-        _rover__ ## info ## __i = ((void *) 1))                                                        \
-      for( struct mulle_vm_node *info;                                                                 \
-           mulle_vm_reverseenumerator_next( &_rover__ ## info, (void **) &info); )
+#define mulle_vm_for_reverse( tree_ptr, page)                                                      \
+   for( struct mulle_vm_reverseenumerator _rover__ ## page = mulle_vm_reverseenumerate( tree_ptr), \
+           *_rover__ ## page ## __i = (void *) 0;                                                  \
+        ! _rover__ ## page ## __i;                                                                 \
+        _rover__ ## page ## __i = ((void *) 1))                                                    \
+      for( struct mulle_vm_page *page;                                                             \
+           mulle_vm_reverseenumerator_next( &_rover__ ## page, &page); )
 
 /*
  * The following files are auto-generated.

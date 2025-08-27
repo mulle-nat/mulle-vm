@@ -1,0 +1,7 @@
+mulle-vm Basic Tests
+==================
+Test 1: VM init/done
+VM initialized successfully
+VM destroyed successfully
+
+All basic tests completed!

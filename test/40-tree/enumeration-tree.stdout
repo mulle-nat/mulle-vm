@@ -1,0 +1,24 @@
+mulle-vm-tree Enumeration Tests
+===============================
+Test 1: Tree initialization
+Tree initialized successfully
+
+Test 2: Create and add pages
+Added page1: "First"
+Added page2: "Second"
+Added page3: "Third"
+
+Test 3: Check tree total length
+Tree total length: 16 (expected: 16)
+SUCCESS: Tree length matches expected total
+
+Test 4: Enumerate pages using mulle_vm_tree_for
+Page 1: "First" (length: 5, total: 5)
+Page 2: "Second" (length: 6, total: 16)
+Page 3: "Third" (length: 5, total: 5)
+SUCCESS: Enumerated expected 3 pages
+
+Test 5: Tree cleanup
+Tree destroyed successfully
+
+All enumeration tests completed!

@@ -1,0 +1,36 @@
+mulle-vm Insert New Page Tests
+===============================
+Test 1: Initialize VM and add first page
+First page data: "Page1XYZ" (8 bytes)
+
+Test 2: Add second page
+Second page data: "Page2ABC" (8 bytes)
+VM length after two pages: 16 bytes
+Complete content: "Page1XYZPage2ABC"
+
+Test 3: Insert large data between the two pages (forces new page)
+Inserting "BIGINSERT123456789" (18 bytes) at position 8 (between pages)
+Note: 18 bytes is much more than 6, so this should create a new intervening page
+Insert operation completed successfully
+
+Test 4: Verify complete result
+Complete content: "Page1XYZBIGINSERT123456789Page2ABC" (34 bytes)
+SUCCESS: Content matches expected result
+
+Test 5: Verify individual parts
+SUCCESS: First part correct: "Page1XYZ"
+SUCCESS: Inserted part correct: "BIGINSERT123456789"
+SUCCESS: Second part correct: "Page2ABC"
+
+Test 6: Verify VM total length
+SUCCESS: VM length is correct: 34 bytes
+
+Test 7: VM cleanup
+** page 0 still in use
+** page 1 still in use
+** page 2 still in use
+** page 3 still in use
+** page 4 still in use
+VM destroyed successfully
+
+All insert-new-page tests completed!

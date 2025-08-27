@@ -7,33 +7,22 @@ MULLE__VM_GLOBAL
 struct mulle_vm_page *
    _mulle_vm_new_page_with_bytes( struct mulle_vm *vm, void *bytes, size_t length);
 
-// used by some testing code
-static inline void   mulle_vm_add_page( struct mulle_vm *vm,
-                                        struct mulle_vm_page *page)
-{
-   MULLE__VM_GLOBAL
-   MULLE_C_NONNULL_FIRST
-   void   _mulle_vm_add_page( struct mulle_vm *vm,
-                              struct mulle_vm_page *page);
-   if( ! vm)
-      return;
-   _mulle_vm_add_page( vm, page);
-}
-
-
-MULLE__VM_GLOBAL
-void   _mulle_vm_remove_mapping_at_index( struct mulle_vm *vm,
-                                          uintptr_t index);
-
 
 static void   show_vm( struct mulle_vm *vm)
 {
    struct mulle_vm_statistics   info;
    size_t                       total_pages;
+   unsigned int                 i;
 
    info        = mulle_vm_get_statistics( vm);
-   total_pages = info.page_size / mulle_vm_get_pagesize( vm);
-   printf( "%lu pages, %lu bytes\n", total_pages, info.vm_size);
+   total_pages = info.page_size / mulle_vm_get_pagesize();
+   printf( "%lu OS pages, %lu bytes\n", total_pages, info.vm_size);
+
+   i = 0;
+   mulle_vm_for( vm, page)
+   {
+      printf( "   %u: rc=%ld\n", i, mulle_vm_page_get_retaincount( page));
+   }
 }
 
 
@@ -50,10 +39,12 @@ int   main( void)
 
    strcpy( text, "Hello World!");
    page = _mulle_vm_new_page_with_bytes( &vm, text, 32);
-   mulle_vm_add_page( &vm, page);
+   mulle_vm_tree_add_page( &vm.tree, page);
+   mulle_vm_page_release( page);
+
    show_vm( &vm);
 
-   _mulle_vm_remove_mapping_at_index( &vm, 0);
+   mulle_vm_tree_remove_page( &vm.tree, page);
    show_vm( &vm);
 
    mulle_vm_done( &vm);

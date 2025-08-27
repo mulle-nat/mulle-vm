@@ -80,10 +80,9 @@ int   mulle_vm_init_with_contents_of_file( struct mulle_vm *vm,
 
 int   mulle_vm_writev_contents( struct mulle_vm *vm, int fd)
 {
-   unsigned int             n;
-   unsigned int             i;
-   struct mulle_vm_node     *node;
-   int                      rval;
+   unsigned int   n;
+   unsigned int   i;
+   int            rval;
 
    n = _mulle__rbtree_get_count( (struct mulle__rbtree *) &vm->tree);
    mulle_alloca_do( ios, struct mulle_iovec, n)

@@ -1,0 +1,33 @@
+mulle-vm Insert Between Pages Tests
+====================================
+Test 1: Initialize VM and add first page
+First page data: "Page1XYZ" (8 bytes)
+
+Test 2: Add second page
+Second page data: "Page2ABC" (8 bytes)
+VM length after two pages: 16 bytes
+Complete content: "Page1XYZPage2ABC"
+
+Test 3: Insert data between the two pages
+Inserting "MIDDLE12" (8 bytes) at position 8 (between pages)
+Insert operation completed successfully
+
+Test 4: Verify complete result
+Complete content: "Page1XYZMIDDLE12Page2ABC" (24 bytes)
+SUCCESS: Content matches expected result
+
+Test 5: Verify individual parts
+SUCCESS: First part correct: "Page1XYZ"
+SUCCESS: Inserted part correct: "MIDDLE12"
+SUCCESS: Second part correct: "Page2ABC"
+
+Test 6: Verify VM total length
+SUCCESS: VM length is correct: 24 bytes
+
+Test 7: VM cleanup
+** page 0 still in use
+** page 1 still in use
+** page 2 still in use
+VM destroyed successfully
+
+All insert-between-pages tests completed!

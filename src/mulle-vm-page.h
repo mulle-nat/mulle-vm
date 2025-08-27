@@ -37,8 +37,49 @@
 
 #include "include.h"
 
+#include <stddef.h>
+
 
 typedef void   mulle_vm_ospage;
+
+
+struct mulle_ospage_allocator
+{
+   size_t   pagesize;
+   void     *(*alloc)( size_t);
+   int      (*free)( void *, size_t);
+   void     (*fail)( struct mulle_allocator *, void *, size_t)  MULLE_C_NO_RETURN;
+};
+
+
+MULLE__VM_GLOBAL
+void   mulle_vm_set_ospage_allocator( struct mulle_ospage_allocator *allocator);
+
+MULLE__VM_GLOBAL
+void   mulle_vm_set_ospage_cachesize( size_t n_pages);
+
+MULLE__VM_GLOBAL
+mulle_vm_ospage *   _mulle_vm_alloc_ospages( size_t size);
+
+
+MULLE__VM_GLOBAL
+void                _mulle_vm_free_ospages( mulle_vm_ospage *mem, size_t size);
+
+
+
+/**
+ * Get the page size of a VM instance.
+ *
+ * Returns the configured page size for the given VM. If vm is NULL,
+ * returns the default page size (MULLE__VM_PAGESIZE_DEFAULT).
+ *
+ * @param vm Pointer to the VM structure, or NULL for default
+ * @return The page size in bytes
+ */
+MULLE__VM_GLOBAL
+size_t   mulle_vm_get_pagesize( void);
+
+
 
 //
 // used by "copy", we share pages with another mulle_vm_page (i.e.) two
@@ -158,6 +199,11 @@ MULLE__VM_GLOBAL
 void   mulle_vm_page_free( struct mulle_vm_page *page);
 
 MULLE__VM_GLOBAL
+struct mulle_vm_page *  mulle_vm_page_new_with_bytes( void *bytes,
+                                                      size_t length,
+                                                      unsigned int skew);
+
+MULLE__VM_GLOBAL
 MULLE_C_NONNULL_FIRST_THIRD
 int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
                                   uintptr_t offset,
@@ -180,29 +226,31 @@ MULLE__VM_GLOBAL
 MULLE_C_NONNULL_FIRST_SECOND
 int   _mulle_vm_page_join( struct mulle_vm_page *a, struct mulle_vm_page *b);
 
-// Static inline retain/release functions for page reference counting
-static inline struct mulle_vm_page *
-   mulle_vm_page_retain( struct mulle_vm_page *page)
-{
-   if( ! page)
-      return( NULL);
-   _mulle_atomic_pointer_increment( &page->retain_count);
-   return( page);
-}
+
+MULLE__VM_GLOBAL
+struct mulle_vm_page *mulle_vm_page_retain( struct mulle_vm_page *page);
 
 // MEMO: only tests should call this...
-static inline void
-   mulle_vm_page_release( struct mulle_vm_page *page)
+MULLE__VM_GLOBAL
+void   mulle_vm_page_release( struct mulle_vm_page *page);
+
+
+// MEMO: only tests should call this...
+static inline intptr_t
+   mulle_vm_page_get_retaincount( struct mulle_vm_page *page)
 {
+   intptr_t    rc;
+
    if( ! page)
-      return;
-   if( ! _mulle_atomic_pointer_decrement( &page->retain_count))
-   {
-      // Page is no longer referenced, but we need VM context to properly free it
-      // This is a simple version that just frees the page structure
-      // Full implementation should free the OS pages too
-      mulle_vm_page_free( page);
-   }
+      return( 0);
+
+   rc = (intptr_t) _mulle_atomic_pointer_read( &page->retain_count);
+   return( rc);
 }
+
+
+MULLE__VM_GLOBAL
+void   mulle_vm_reset_freed_ospages( void);
+
 
 #endif

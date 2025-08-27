@@ -1,0 +1,19 @@
+mulle-vm-tree Add/Remove Tests
+==============================
+Test 1: Tree initialization
+Tree initialized successfully
+
+Test 2: Create page
+Page created with data: "Hello, World!" (length: 13)
+
+Test 3: Add page to tree
+Page added to tree successfully
+
+Test 4: Check tree total length
+Tree total length: 13
+SUCCESS: Tree length matches expected data length
+
+Test 5: Tree cleanup
+Tree destroyed successfully
+
+All add/remove tests completed!

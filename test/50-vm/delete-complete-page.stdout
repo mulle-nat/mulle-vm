@@ -1,0 +1,28 @@
+=== Testing mulle_vm_delete complete page scenario ===
+VM initialized with pagesize=8, skew=25
+
+Step 1: Creating three pages...
+VM length with three pages: 20 bytes
+Initial content: "ABCDEFGH12345678WXYZ"
+
+Step 2: Deleting complete middle page (8 bytes at offset 8)...
+VM length after delete: 12 bytes
+SUCCESS: VM length decreased by exactly 8 bytes
+
+Step 3: Verifying content after deletion...
+Content after delete: "ABCDEFGHWXYZ"
+SUCCESS: Content matches expected result
+
+Step 4: Deleting first page completely (8 bytes at offset 0)...
+VM length after deleting first page: 4 bytes
+
+Step 5: Verifying final content...
+Final content: "WXYZ"
+SUCCESS: Final content matches expected result
+
+=== Test completed successfully ===
+** page 0 still in use
+** page 1 still in use
+** page 2 still in use
+** page 3 still in use
+** page 4 still in use
