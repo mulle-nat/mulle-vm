@@ -15,33 +15,37 @@ static void   show_vm( struct mulle_vm *vm)
 }
 
 
+static void   dump_vm_contents( struct mulle_vm *vm)
+{
+   char         buf[ 1024];
+   const char   *s;
+   size_t       length;
+
+   length = mulle_vm_get_length( vm);
+   length = length > sizeof( buf) ? sizeof( buf) : length;
+
+   s = mulle_vm_read( vm, mulle_range_make( 0, length), buf);
+   if( s)
+      mulle_printf( "%.*s\n", (length), s);
+}
+
+
 static void   dump_vm( struct mulle_vm *vm)
 {
-   char                         buf[ 1024];
-   const void                   *s;
-   struct mulle_vm_statistics   statistics;
-   struct mulle_vm_mapping      *info;
    struct mulle_vm_page         *page;
+   struct mulle_vm_node         *node;
    unsigned int                 i;
    uintptr_t                    vm_address;
-
-   statistics = mulle_vm_get_statistics( vm);
-
-   s = mulle_vm_read( vm, mulle_range_make( 0, statistics.vm_size), buf);
-   if( s)
-      fwrite( s, 1, statistics.vm_size, stdout);
-   printf( "\n");
-
 
    printf( "VM:\n");
    fflush( stdout);
    fprintf( stderr, "adr-end (size-[fhole,ehole])\n");
 
    i = 0;
-   mulle_structarray_for( &vm->mappings, info)
+   vm_address = 0;
+   mulle_vm_tree_for( &vm->tree, node)
    {
-      page       = info->page;
-      vm_address = info->address;
+      page       = node->page;
       ++i;
 
       // output vm range, size of pages, and hole in front and back
@@ -54,6 +58,8 @@ static void   dump_vm( struct mulle_vm *vm)
          page->size,
          page->used.location,
          page->size - mulle_range_get_max( page->used));
+
+      vm_address += page->used.length;
    }
    printf( "\n");
 }
@@ -75,9 +81,12 @@ static void  test_with_range( uintptr_t location, uintptr_t length)
    mulle_vm_append( &vm, "qrst", 4);
    mulle_vm_append( &vm, "uvw", 3);
    mulle_vm_append( &vm, "xyz", 3);
+   dump_vm_contents( &vm);
 
-   printf( "== delete {%td, %td} ==\n", range.location, range.length);
+   mulle_printf( "== delete {%td, %td} ==\n", range.location, range.length);
    mulle_vm_delete( &vm, range);
+   dump_vm_contents( &vm);
+
    show_vm( &vm);
    dump_vm( &vm);
 

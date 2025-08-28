@@ -2,7 +2,7 @@ Testing newline search with mulle_vm_memchr
 ==========================================
 
 == Test Sequential Newline Search (reproducing mulle-editor issue) ==
-1 pages, 24 bytes
+4 pages, 24 bytes
 VM content (24 bytes): "Hello World
 Second Line
 "
@@ -17,7 +17,7 @@ Line 2: line_start=12, search_range=[12,12], newline_pos=23
   -> Line with newline, range=[12,12] (includes newline)
 
 == Test Newline Search from File (like mulle-editor does) ==
-1 pages, 24 bytes
+3 pages, 24 bytes
 VM content (24 bytes): "Hello World
 Second Line
 "

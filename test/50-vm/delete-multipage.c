@@ -22,27 +22,12 @@ int main(void)
     
     // Initialize VM with debug config (8-byte pages)
     mulle_vm_init(&vm, &mulle_vm_debug_config, NULL);
-    mulle_printf("VM initialized with pagesize=%zu, skew=%zu\n", 
-           mulle_vm_debug_config.pagesize, mulle_vm_debug_config.skew);
+    mulle_printf("VM initialized with debug config\n");
     
     // Create a multi-page VM: "AAAABBBB" + "CCCCDDDD" + "EEEEFFFF" = 24 bytes total
-    mulle_vm_append( &vm, initial_data, initial_len);
-    if(result != 0) {
-        mulle_printf("ERROR: Failed to append page1 data: %d\n", result);
-        return 1;
-    }
-    
-    mulle_vm_append( &vm, initial_data, initial_len);
-    if(result != 0) {
-        mulle_printf("ERROR: Failed to append page2 data: %d\n", result);
-        return 1;
-    }
-    
-    mulle_vm_append( &vm, initial_data, initial_len);
-    if(result != 0) {
-        mulle_printf("ERROR: Failed to append page3 data: %d\n", result);
-        return 1;
-    }
+    mulle_vm_append( &vm, page1_data, strlen(page1_data));
+    mulle_vm_append( &vm, page2_data, strlen(page2_data));
+    mulle_vm_append( &vm, page3_data, strlen(page3_data));
     
     size_t initial_length = mulle_vm_get_length(&vm);
     mulle_printf("Initial VM length: %zu bytes (3 pages)\n", initial_length);

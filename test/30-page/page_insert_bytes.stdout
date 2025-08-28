@@ -6,7 +6,7 @@ Initial: used={5,3}, size=64
   Content: "ABC"
 Insert data: "DEF" at offset 3
 Result: 0
-After append: used={2,6}, size=64
+After append: used={5,6}, size=64
   Content: "ABCDEF"
 
 === Test: Clean Prepend ===
@@ -46,7 +46,7 @@ Initial: used={25,3}, size=32
   Content: "ABC"
 Insert data: "DEF" at offset 3
 Result: 0
-After append with compaction: used={22,6}, size=32
+After append with compaction: used={25,6}, size=32
   Content: "ABCDEF"
 
 === Test: Prepend with Compaction ===

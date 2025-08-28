@@ -20,7 +20,7 @@ static void   dump_vm( struct mulle_vm *vm)
    char                         buf[ 1024];
    const void                   *s;
    struct mulle_vm_statistics   statistics;
-   struct mulle_vm_mapping      *info;
+   struct mulle_vm_node         *node;
    struct mulle_vm_page         *page;
    unsigned int                 i;
    uintptr_t                    vm_address;
@@ -38,10 +38,10 @@ static void   dump_vm( struct mulle_vm *vm)
    fprintf( stderr, "adr-end (size-[fhole,ehole])\n");
 
    i = 0;
-   mulle_structarray_for( &vm->mappings, info)
+   vm_address = 0;
+   mulle_vm_tree_for( &vm->tree, node)
    {
-      page       = info->page;
-      vm_address = info->address;
+      page = node->page;
       ++i;
 
       // output vm range, size of pages, and hole in front and back
@@ -54,6 +54,7 @@ static void   dump_vm( struct mulle_vm *vm)
          page->size,
          page->used.location,
          page->size - mulle_range_get_max( page->used));
+      vm_address += page->used.length;
    }
    printf( "\n");
 }

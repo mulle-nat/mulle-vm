@@ -1,0 +1,29 @@
+mulle-vm Read/Write Tests
+=========================
+Test 1: VM initialization and data addition
+Added data: "Hello, VM World!" (16 bytes)
+
+Test 2: Read data from beginning
+Read from range {0,5}: "Hello"
+SUCCESS: Read data matches expected content
+
+Test 3: Read data from middle
+Read from range {7,2}: "VM"
+SUCCESS: Read data matches expected content
+
+Test 4: Read entire content into buffer
+Read entire content: "Hello, VM World!"
+SUCCESS: Entire content read correctly
+
+Test 5: Write data to beginning
+Write operation completed successfully
+Content after write: "UPDATEDVM World!"
+SUCCESS: Write operation worked correctly
+
+Test 6: Test invalid range reads
+SUCCESS: Reading beyond end correctly returns NULL
+
+Test 7: VM cleanup
+VM destroyed successfully
+
+All read/write tests completed!

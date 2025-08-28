@@ -36,7 +36,7 @@ Find last 'X': PASS (found at 20)
 Find 'a': PASS (found at 1)
 
 == Test mulle_vm_memrchr comprehensive ==
-4 pages, 28 bytes
+5 pages, 28 bytes
 VM content: "abcdefghijklmnmopqrstuvwaxyz"
 Find last 'a': PASS (found at 24)
 Find last 'e': PASS (found at 4)

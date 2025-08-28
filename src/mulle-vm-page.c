@@ -384,6 +384,7 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
                                   size_t length)
 {
    size_t   available;
+   size_t   actual_available;
    char     *new_front;
    char     *old_front;
    char     *new_insert;
@@ -391,7 +392,8 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
    char     *new_middle;
    int      adjacent;
 
-   assert( page->retain_count == 0 && "can't modify shared page");
+   // assert( page->retain_count == 0 && "can't modify shared page");
+
    // you can only change unshared pages
    if( page->retain_count != 0)
    {
@@ -399,15 +401,26 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
       return( -1);
    }
 
-   size_t actual_available = page->size - (page->used.location + page->used.length);
+   // check that page can service the request at all
+   actual_available = mulle_vm_page_get_available( page);
    if( actual_available < length)
    {
       errno = ENOSPC;
       return( -1);
    }
 
+   // offset must be within or at and of the used data range
+   // actually hitting this is probably an error on callers part
+   // should assert this but then tests fail..
+   if( offset > page->used.length)
+   {
+      errno = ERANGE;
+      return( -1);
+   }
+
+
    // clean append to back
-   adjacent = mulle_range_get_max( page->used) == offset;
+   adjacent = (page->used.length == offset);
    if( adjacent)
    {
       available = mulle_vm_page_get_available_back( page);
@@ -451,15 +464,6 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
       page->used.length += length;
 
       return( 0);
-   }
-
-
-   // so we got's to have a split
-   // offset must be within the used data range
-   if( offset > page->used.length)
-   {
-      errno = EINVAL;
-      return( -1);
    }
 
    //

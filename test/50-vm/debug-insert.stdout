@@ -1,0 +1,5 @@
+Debug: Testing simple insert
+Test 1: Insert 'Hello' at position 0
+VM length after insert: 5
+Content: 'Hello'
+Debug test completed

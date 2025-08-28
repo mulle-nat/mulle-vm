@@ -22,11 +22,12 @@ Total pages enumerated: 4
 Total pages enumerated: 0
 
 == Test mulle_vm_mapping_for_reverse with detailed page info ==
-2 pages, 15 bytes
+3 pages, 15 bytes
 VM content: ABCDEFGHIJKLMNO
-Page 1: address=8, size=8, used=[1,8), holes=[front:1, back:0]
-Page 0: address=0, size=8, used=[0,8), holes=[front:0, back:0]
-Total pages enumerated: 2
+Page 2: address=0, size=8, used=[1,4), holes=[front:1, back:4]
+Page 1: address=3, size=8, used=[1,7), holes=[front:1, back:1]
+Page 0: address=9, size=8, used=[1,7), holes=[front:1, back:1]
+Total pages enumerated: 3
 
 == Test mulle_vm_mapping_for_reverse comparison with forward ==
 2 pages, 10 bytes
@@ -36,8 +37,8 @@ Forward iteration:
   Page 1: address=8, size=8, used=[1,3)
 Forward pages enumerated: 2
 Reverse iteration:
-  Page 1: address=8, size=8, used=[1,3)
-  Page 0: address=0, size=8, used=[0,8)
+  Page 1: address=0, size=8, used=[1,3)
+  Page 0: address=2, size=8, used=[0,8)
 Reverse pages enumerated: 2
 
 All mulle_vm_mapping_for_reverse tests completed.

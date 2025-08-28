@@ -1,0 +1,5 @@
+=== Simple Delete Test ===
+Initial VM length: 8 bytes
+Deleting range {0, 8}
+Final VM length: 0 bytes
+SUCCESS: Page deleted completely

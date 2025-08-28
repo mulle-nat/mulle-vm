@@ -30,12 +30,7 @@ int   main( void)
    mulle_vm_init( &vm, NULL, NULL);
    
    size_t data_len = strlen( original_data);
-   mulle_vm_append( &vm, initial_data, initial_len);
-   if( result != 0)
-   {
-      printf( "ERROR: Failed to append data\n");
-      return( 1);
-   }
+   mulle_vm_append( &vm, original_data, data_len);
    printf( "Added data: \"%s\" (%zu bytes)\n", original_data, data_len);
    
    // Test 2: Read data from the beginning

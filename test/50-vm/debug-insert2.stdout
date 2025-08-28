@@ -1,0 +1,18 @@
+Debug: Testing position 5 insertion
+Test 1: Insert 'Hello' at position 0
+Length after Test 1: 5
+Content: 'Hello'
+Test 2: Insert 'World ' at position 0
+Length after Test 2: 11
+Content: 'World Hello'
+Test 3: Insert '!' at position 11
+Length after Test 3: 12
+Content: 'World Hello!'
+Test 4: Insert ' Beautiful' at position 11
+Length after Test 4: 22
+Content: 'World Hello Beautiful!'
+Test 5: Insert '-' at position 5
+Current length: 22
+Length after Test 5: 23
+Final content: 'World- Hello Beautiful!'
+Debug test completed successfully

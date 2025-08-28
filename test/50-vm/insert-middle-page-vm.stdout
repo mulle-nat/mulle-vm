@@ -23,8 +23,6 @@ Test 5: Verify VM total length
 SUCCESS: VM length is correct: 8 bytes
 
 Test 6: VM cleanup
-** page 0 still in use
-** page 1 still in use
 VM destroyed successfully
 
 All insert-middle-page tests completed!

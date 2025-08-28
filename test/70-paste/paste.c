@@ -15,18 +15,21 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
    uintptr_t vm_address;
 
    info = mulle_vm_get_statistics(vm);
-   total_pages = info.page_size / mulle_vm_get_pagesize(vm);
+   total_pages = info.page_size / mulle_vm_get_pagesize();
    printf("%s: %lu vm pages %lu os pages, %lu bytes\n", name,
-          (long) mulle_structarray_get_count( &vm->mappings), total_pages, info.vm_size);
+          (long) _mulle__rbtree_get_count( (struct mulle__rbtree *) &vm->tree), total_pages, info.vm_size);
    
    // Show detailed page information
    i = 0;
-   mulle_vm_mapping_for( vm, mapping)
+   vm_address = 0;
+   struct mulle_vm_node *node;
+   mulle_vm_tree_for( &vm->tree, node)
    {
-      page = mapping->page;
+      page = node->page;
       printf("  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
-             i, mapping->address, page->size, page->used.location, page->used.length,
+             i, vm_address, page->size, page->used.location, page->used.length,
              (intptr_t) _mulle_atomic_pointer_read_nonatomic( &page->retain_count));
+      vm_address += page->used.length;
       ++i;
    }
 }

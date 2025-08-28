@@ -203,6 +203,11 @@ struct mulle_vm_page *  mulle_vm_page_new_with_bytes( void *bytes,
                                                       size_t length,
                                                       unsigned int skew);
 
+//
+// Offset is can be from 0 to page->length.used (0: prepend,
+// page->length.used: append, other: split)
+// If page is shared or does not have enough room returns -1
+//
 MULLE__VM_GLOBAL
 MULLE_C_NONNULL_FIRST_THIRD
 int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
@@ -217,7 +222,7 @@ int  mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
                                   size_t length)
 {
    if( ! page)
-      return( -1);
+      return( 0);
    return( _mulle_vm_page_insert_bytes( page, offset, bytes, length));
 }
 

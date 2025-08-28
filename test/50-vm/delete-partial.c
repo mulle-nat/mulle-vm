@@ -20,17 +20,12 @@ int main(void)
     
     // Initialize VM with debug config (8-byte pages)
     mulle_vm_init(&vm, &mulle_vm_debug_config, NULL);
-    mulle_printf("VM initialized with pagesize=%zu, skew=%zu\n", 
-           mulle_vm_debug_config.pagesize, mulle_vm_debug_config.skew);
+    mulle_printf("VM initialized with debug config\n");
     
     // Test 1: Delete from front of page
     mulle_printf("\n=== Test 1: Delete 3 bytes from front ===\n");
     
-    mulle_vm_append( &vm, initial_data, initial_len);
-    if(result != 0) {
-        mulle_printf("ERROR: Failed to append data: %d\n", result);
-        return 1;
-    }
+    mulle_vm_append( &vm, page_data, strlen(page_data));
     
     size_t initial_length = mulle_vm_get_length(&vm);
     mulle_printf("Initial VM length: %zu bytes\n", initial_length);
@@ -123,11 +118,7 @@ int main(void)
     mulle_vm_reset(&vm);
     char middle_data[] = "ABCDEFGH";
     
-    mulle_vm_append( &vm, initial_data, initial_len);
-    if(result != 0) {
-        mulle_printf("ERROR: Failed to append middle test data: %d\n", result);
-        return 1;
-    }
+    mulle_vm_append( &vm, middle_data, strlen(middle_data));
     
     mulle_printf("Fresh page content: \"%s\"\n", middle_data);
     

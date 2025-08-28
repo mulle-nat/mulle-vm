@@ -1,7 +1,7 @@
 Initial state after adding test data to source:
 Source VM: 2 vm pages 7 os pages, 53 bytes
-  Page 0: vm_addr=0, size=16, used=[0,16], retain_count=0
-  Page 1: vm_addr=16, size=40, used=[0,37], retain_count=0
+  Page 0: vm_addr=0, size=16, used=[1,15], retain_count=0
+  Page 1: vm_addr=15, size=40, used=[0,38], retain_count=0
 Hello World! - This is test data for copy operations. (length: 53)
 
 Test 2: Copy middle section (6-11)

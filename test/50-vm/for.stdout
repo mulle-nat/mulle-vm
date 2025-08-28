@@ -22,10 +22,11 @@ Total pages enumerated: 4
 Total pages enumerated: 0
 
 == Test mulle_vm_mapping_for with detailed page info ==
-2 pages, 15 bytes
+3 pages, 15 bytes
 VM content: ABCDEFGHIJKLMNO
-Page 0: address=0, size=8, used=[0,8), holes=[front:0, back:0]
-Page 1: address=8, size=8, used=[1,8), holes=[front:1, back:0]
-Total pages enumerated: 2
+Page 0: address=0, size=8, used=[1,7), holes=[front:1, back:1]
+Page 1: address=6, size=8, used=[1,7), holes=[front:1, back:1]
+Page 2: address=12, size=8, used=[1,4), holes=[front:1, back:4]
+Total pages enumerated: 3
 
 All mulle_vm_mapping_for tests completed.

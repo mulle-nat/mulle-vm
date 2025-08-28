@@ -33,9 +33,10 @@ perations. (length: 10)
 Test 5: Multiple copy operations
 First copy result: 0
 Second copy result: 0
-Dest VM: 1 vm pages 1 os pages, 7 bytes
-  Page 0: vm_addr=0, size=8, used=[0,7], retain_count=0
- World! (length: 7)
+Dest VM: 2 vm pages 2 os pages, 12 bytes
+  Page 0: vm_addr=0, size=8, used=[0,5], retain_count=0
+  Page 1: vm_addr=5, size=8, used=[0,7], retain_count=0
+Hello World! (length: 12)
 
 Test 6: Copy with invalid range (beyond source)
 Copy result (should fail): -1

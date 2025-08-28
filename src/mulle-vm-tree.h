@@ -326,7 +326,7 @@ static inline struct mulle_vm_node *
       return( NULL);
 
    rbnode      = _mulle_vm_node_get_rbnode( node);
-   next_rbnode = _mulle__rbtree_previous_node(rb__tree, rbnode);
+   next_rbnode = _mulle__rbtree_next_node( rb__tree, rbnode);
    if( next_rbnode == _mulle__rbtree_get_nil_node( rb__tree))
       return( NULL);
 

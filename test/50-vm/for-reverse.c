@@ -9,7 +9,7 @@ static void show_vm(struct mulle_vm *vm)
    size_t total_pages;
 
    statistics = mulle_vm_get_statistics(vm);
-   total_pages = statistics.page_size / mulle_vm_get_pagesize(vm);
+   total_pages = statistics.page_size / mulle_vm_get_pagesize();
    printf("%lu pages, %lu bytes\n", total_pages, statistics.vm_size);
 }
 
@@ -18,6 +18,8 @@ static void test_mulle_vm_for_reverse_empty(void)
 {
    struct mulle_vm vm;
    int count;
+   uintptr_t vm_address;
+   struct mulle_vm_node *node;
 
    printf("== Test mulle_vm_mapping_for_reverse with empty VM ==\n");
    mulle_vm_init(&vm, &mulle_vm_debug_config, NULL);
@@ -27,15 +29,24 @@ static void test_mulle_vm_for_reverse_empty(void)
    size_t total_pages = statistics.page_size / mulle_vm_get_pagesize();
 
    count = 0;
-   mulle_vm_mapping_for_reverse(&vm, info)
-   {
-      printf("Page %zu: address=%lu, size=%lu, used=[%lu,%lu)\n",
-             total_pages - count - 1,
-             info->address,
-             info->page->size,
-             info->page->used.location,
-             info->page->used.location + info->page->used.length);
-      count++;
+   vm_address = 0;
+   // Calculate total length for reverse indexing
+   size_t total_length = 0;
+   mulle_vm_tree_for(&vm.tree, node) {
+       total_length += node->page->used.length;
+   }
+   
+   // Reverse enumeration
+   mulle_vm_tree_for_reverse(&vm.tree, node) {
+       size_t page_start = total_length - node->page->used.length;
+       printf("Page %zu: address=%lu, size=%lu, used=[%lu,%lu)\n",
+              total_pages - count - 1,
+              page_start,
+              node->page->size,
+              node->page->used.location,
+              node->page->used.location + node->page->used.length);
+       total_length -= node->page->used.length;
+       count++;
    }
    printf("Total pages enumerated: %d\n\n", count);
 
@@ -47,6 +58,8 @@ static void test_mulle_vm_for_reverse_single_page(void)
 {
    struct mulle_vm vm;
    int count;
+   uintptr_t vm_address;
+   struct mulle_vm_node *node;
 
    printf("== Test mulle_vm_mapping_for_reverse with single page ==\n");
    mulle_vm_init(&vm, &mulle_vm_debug_config, NULL);
@@ -58,15 +71,24 @@ static void test_mulle_vm_for_reverse_single_page(void)
    size_t total_pages = statistics.page_size / mulle_vm_get_pagesize();
 
    count = 0;
-   mulle_vm_mapping_for_reverse(&vm, info)
-   {
-      printf("Page %zu: address=%lu, size=%lu, used=[%lu,%lu)\n",
-             total_pages - count - 1,
-             info->address,
-             info->page->size,
-             info->page->used.location,
-             info->page->used.location + info->page->used.length);
-      count++;
+   vm_address = 0;
+   // Calculate total length for reverse indexing
+   size_t total_length = 0;
+   mulle_vm_tree_for(&vm.tree, node) {
+       total_length += node->page->used.length;
+   }
+   
+   // Reverse enumeration
+   mulle_vm_tree_for_reverse(&vm.tree, node) {
+       size_t page_start = total_length - node->page->used.length;
+       printf("Page %zu: address=%lu, size=%lu, used=[%lu,%lu)\n",
+              total_pages - count - 1,
+              page_start,
+              node->page->size,
+              node->page->used.location,
+              node->page->used.location + node->page->used.length);
+       total_length -= node->page->used.length;
+       count++;
    }
    printf("Total pages enumerated: %d\n\n", count);
 
@@ -78,6 +100,8 @@ static void test_mulle_vm_for_reverse_multiple_pages(void)
 {
    struct mulle_vm vm;
    int count;
+   uintptr_t vm_address;
+   struct mulle_vm_node *node;
 
    printf("== Test mulle_vm_mapping_for_reverse with multiple pages ==\n");
    mulle_vm_init(&vm, &mulle_vm_debug_config, NULL);
@@ -96,15 +120,24 @@ static void test_mulle_vm_for_reverse_multiple_pages(void)
    size_t total_pages = statistics.page_size / mulle_vm_get_pagesize();
 
    count = 0;
-   mulle_vm_mapping_for_reverse(&vm, info)
-   {
-      printf("Page %zu: address=%lu, size=%lu, used=[%lu,%lu)\n",
-             total_pages - count - 1,
-             info->address,
-             info->page->size,
-             info->page->used.location,
-             info->page->used.location + info->page->used.length);
-      count++;
+   vm_address = 0;
+   // Calculate total length for reverse indexing
+   size_t total_length = 0;
+   mulle_vm_tree_for(&vm.tree, node) {
+       total_length += node->page->used.length;
+   }
+   
+   // Reverse enumeration
+   mulle_vm_tree_for_reverse(&vm.tree, node) {
+       size_t page_start = total_length - node->page->used.length;
+       printf("Page %zu: address=%lu, size=%lu, used=[%lu,%lu)\n",
+              total_pages - count - 1,
+              page_start,
+              node->page->size,
+              node->page->used.location,
+              node->page->used.location + node->page->used.length);
+       total_length -= node->page->used.length;
+       count++;
    }
    printf("Total pages enumerated: %d\n\n", count);
 
@@ -116,20 +149,24 @@ static void test_mulle_vm_for_reverse_null_vm(void)
 {
    struct mulle_vm *vm;
    int count;
+   uintptr_t vm_address;
+   struct mulle_vm_node *node;
 
    printf("== Test mulle_vm_mapping_for_reverse with NULL VM ==\n");
    vm = NULL;
 
    // total_pages must be 0 when vm is NULL, so just print index as count for safety
    count = 0;
-   mulle_vm_mapping_for_reverse(vm, info)
+   vm_address = 0;
+   mulle_vm_tree_for_reverse(vm, node)
    {
       printf("Page %d: address=%lu, size=%lu, used=[%lu,%lu)\n",
              count,
-             info->address,
-             info->page->size,
-             info->page->used.location,
-             info->page->used.location + info->page->used.length);
+             vm_address,
+             node->page->size,
+             node->page->used.location,
+             node->page->used.location + node->page->used.length);
+      vm_address += node->page->used.length;
       count++;
    }
    printf("Total pages enumerated: %d\n\n", count);
@@ -142,6 +179,8 @@ static void test_mulle_vm_for_reverse_detailed_info(void)
    int count;
    char buf[1024];
    const void *s;
+   uintptr_t vm_address;
+   struct mulle_vm_node *node;
 
    printf("== Test mulle_vm_mapping_for_reverse with detailed page info ==\n");
    mulle_vm_init(&vm, &mulle_vm_debug_config, NULL);
@@ -167,16 +206,18 @@ static void test_mulle_vm_for_reverse_detailed_info(void)
    size_t total_pages = statistics.page_size / mulle_vm_get_pagesize();
 
    count = 0;
-   mulle_vm_mapping_for_reverse(&vm, info)
+   vm_address = 0;
+   mulle_vm_tree_for_reverse(&vm, node)
    {
       printf("Page %zu: address=%lu, size=%lu, used=[%lu,%lu), holes=[front:%lu, back:%lu]\n",
              total_pages - count - 1,
-             info->address,
-             info->page->size,
-             info->page->used.location,
-             info->page->used.location + info->page->used.length,
-             info->page->used.location,
-             info->page->size - (info->page->used.location + info->page->used.length));
+             vm_address,
+             node->page->size,
+             node->page->used.location,
+             node->page->used.location + node->page->used.length,
+             node->page->used.location,
+             node->page->size - (node->page->used.location + node->page->used.length));
+      vm_address += node->page->used.length;
       count++;
    }
    printf("Total pages enumerated: %d\n\n", count);
@@ -192,6 +233,8 @@ static void test_mulle_vm_for_reverse_comparison(void)
    int count;
    char buf[1024];
    const void *s;
+   uintptr_t vm_address;
+   struct mulle_vm_node *node;
 
    printf("== Test mulle_vm_mapping_for_reverse comparison with forward ==\n");
    mulle_vm_init(&vm, &mulle_vm_debug_config, NULL);
@@ -218,14 +261,16 @@ static void test_mulle_vm_for_reverse_comparison(void)
    // Forward iteration
    printf("Forward iteration:\n");
    count = 0;
-   mulle_vm_mapping_for(&vm, info)
+   vm_address = 0;
+   mulle_vm_tree_for(&vm.tree, node)
    {
       printf("  Page %d: address=%lu, size=%lu, used=[%lu,%lu)\n",
              count,
-             info->address,
-             info->page->size,
-             info->page->used.location,
-             info->page->used.location + info->page->used.length);
+             vm_address,
+             node->page->size,
+             node->page->used.location,
+             node->page->used.location + node->page->used.length);
+      vm_address += node->page->used.length;
       count++;
    }
    printf("Forward pages enumerated: %d\n", count);
@@ -233,14 +278,16 @@ static void test_mulle_vm_for_reverse_comparison(void)
    // Reverse iteration
    printf("Reverse iteration:\n");
    count = 0;
-   mulle_vm_mapping_for_reverse(&vm, info)
+   vm_address = 0;
+   mulle_vm_tree_for_reverse(&vm.tree, node)
    {
       printf("  Page %zu: address=%lu, size=%lu, used=[%lu,%lu)\n",
              total_pages - count - 1,
-             info->address,
-             info->page->size,
-             info->page->used.location,
-             info->page->used.location + info->page->used.length);
+             vm_address,
+             node->page->size,
+             node->page->used.location,
+             node->page->used.location + node->page->used.length);
+      vm_address += node->page->used.length;
       count++;
    }
    printf("Reverse pages enumerated: %d\n\n", count);

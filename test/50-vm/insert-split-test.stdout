@@ -11,10 +11,5 @@ New VM length: 14 bytes
 Step 3: Testing smaller insert that should fit...
 SUCCESS: Small insert worked as expected
 Final VM length: 15 bytes
-** page 0 still in use
-** page 1 still in use
-** page 2 still in use
-** page 3 still in use
-** page 4 still in use
 
 === Test completed ===

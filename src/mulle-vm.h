@@ -346,9 +346,16 @@ static inline void   mulle_vm_append( struct mulle_vm *vm, void *bytes, size_t l
 
 // this deletes the range from the vm, some pages will be evicted
 MULLE__VM_GLOBAL
-void   mulle_vm_delete( struct mulle_vm *vm,
-                        struct mulle_range range);
+void   _mulle_vm_delete( struct mulle_vm *vm,
+                         struct mulle_range range);
 
+static inline
+void   mulle_vm_delete( struct mulle_vm *vm,
+                        struct mulle_range range)
+{
+   if( vm)
+      _mulle_vm_delete( vm, range);
+}
 
 //
 // dst and src must be different

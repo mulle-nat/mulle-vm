@@ -38,10 +38,10 @@ static void   dump_vm( struct mulle_vm *vm)
    fprintf( stderr, "adr-end (size-[fhole,ehole])\n");
 
    i = 0;
-   mulle_vm_for( vm, node)
+   vm_address = 0;
+   mulle_vm_tree_for( &vm->tree, node)
    {
       page       = node->page;
-      vm_address = mulle_vm_tree_get_address_for_node( &vm->tree, node);
       ++i;
 
       // output vm range, size of pages, and hole in front and back
@@ -54,6 +54,8 @@ static void   dump_vm( struct mulle_vm *vm)
          page->size,
          page->used.location,
          page->size - mulle_range_get_max( page->used));
+
+      vm_address += page->used.length;
    }
    printf( "\n");
 }

@@ -1,5 +1,5 @@
 === Testing mulle_vm_delete partial scenarios ===
-VM initialized with pagesize=8, skew=25
+VM initialized with debug config
 
 === Test 1: Delete 3 bytes from front ===
 Initial VM length: 8 bytes
@@ -24,9 +24,5 @@ VM length after middle delete: 5 bytes
 SUCCESS: VM length decreased by 3 bytes
 Content after middle delete: "ABFGH"
 SUCCESS: Middle delete content matches expected result
-** page 0 still in use
-** page 1 still in use
-** page 2 still in use
-** page 3 still in use
 
 === All partial deletion tests completed successfully ===

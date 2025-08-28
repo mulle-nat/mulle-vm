@@ -1,5 +1,5 @@
 === Testing mulle_vm_delete complete page scenario ===
-VM initialized with pagesize=8, skew=25
+VM initialized with debug config
 
 Step 1: Creating three pages...
 VM length with three pages: 20 bytes
@@ -21,8 +21,3 @@ Final content: "WXYZ"
 SUCCESS: Final content matches expected result
 
 === Test completed successfully ===
-** page 0 still in use
-** page 1 still in use
-** page 2 still in use
-** page 3 still in use
-** page 4 still in use

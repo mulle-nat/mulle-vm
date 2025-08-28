@@ -23,10 +23,6 @@ Total pages used: 2 (should be 2 if optimization worked)
 SUCCESS: Page utilization optimization worked - no new page created
 
 Test 6: VM cleanup
-** page 0 still in use
-** page 1 still in use
-** page 2 still in use
-** page 3 still in use
 VM destroyed successfully
 
 All insert page utilization tests completed!

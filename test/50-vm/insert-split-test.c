@@ -24,7 +24,7 @@ int main(void)
     
     
     mulle_printf("VM initialized with pagesize=%zu, skew=%zu\n", 
-           mulle_vm_debug_config.pagesize, mulle_vm_debug_config.skew);
+           mulle_vm_get_pagesize(), mulle_vm_debug_config.skew);
     
     // Fill initial data with recognizable pattern (5 chars + null terminator = 6 bytes)
     strcpy(initial_data, "ABCDE");

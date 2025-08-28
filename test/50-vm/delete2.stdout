@@ -1,91 +1,103 @@
+abcdefghijklmnopqrstuvwxyz
 == delete {0, 8} ==
-3 pages, 18 bytes
 ijklmnopqrstuvwxyz
-VM:
-	 0-8  (8-[0,0])
-	 8-16 (8-[0,0])
-	16-18 (8-[1,5])
-
-== delete {1, 8} ==
-4 pages, 18 bytes
-ajklmnopqrstuvwxyz
-VM:
-	 0-1  (8-[0,7])
-	 1-8  (8-[1,0])
-	 8-16 (8-[0,0])
-	16-18 (8-[1,5])
-
-== delete {7, 8} ==
-4 pages, 18 bytes
-abcdefgpqrstuvwxyz
-VM:
-	 0-7  (8-[0,1])
-	 7-8  (8-[7,0])
-	 8-16 (8-[0,0])
-	16-18 (8-[1,5])
-
-== delete {7, 9} ==
-3 pages, 17 bytes
-abcdefgqrstuvwxyz
-VM:
-	 0-7  (8-[0,1])
-	 7-15 (8-[0,0])
-	15-17 (8-[1,5])
-
-== delete {7, 10} ==
-3 pages, 16 bytes
-abcdefgrstuvwxyz
-VM:
-	 0-7  (8-[0,1])
-	 7-14 (8-[1,0])
-	14-16 (8-[1,5])
-
-== delete {8, 7} ==
-4 pages, 19 bytes
-abcdefghpqrstuvwxyz
-VM:
-	 0-8  (8-[0,0])
-	 8-9  (8-[7,0])
-	 9-17 (8-[0,0])
-	17-19 (8-[1,5])
-
-== delete {8, 8} ==
 3 pages, 18 bytes
-abcdefghqrstuvwxyz
-VM:
-	 0-8  (8-[0,0])
-	 8-16 (8-[0,0])
-	16-18 (8-[1,5])
-
-== delete {8, 9} ==
-3 pages, 17 bytes
-abcdefghrstuvwxyz
 VM:
 	 0-8  (8-[0,0])
 	 8-15 (8-[1,0])
-	15-17 (8-[1,5])
+	15-18 (8-[1,4])
 
+abcdefghijklmnopqrstuvwxyz
+== delete {1, 8} ==
+ajklmnopqrstuvwxyz
+3 pages, 18 bytes
+VM:
+	 0-8  (8-[0,0])
+	 8-15 (8-[1,0])
+	15-18 (8-[1,4])
+
+abcdefghijklmnopqrstuvwxyz
+== delete {7, 8} ==
+abcdefgpqrstuvwxyz
+3 pages, 18 bytes
+VM:
+	 0-8  (8-[0,0])
+	 8-15 (8-[1,0])
+	15-18 (8-[1,4])
+
+abcdefghijklmnopqrstuvwxyz
+== delete {7, 9} ==
+abcdefgqrstuvwxyz
+4 pages, 17 bytes
+VM:
+	 0-7  (8-[0,1])
+	 7-7  (8-[0,8])
+	 7-14 (8-[1,0])
+	14-17 (8-[1,4])
+
+abcdefghijklmnopqrstuvwxyz
+== delete {7, 10} ==
+abcdefgrstuvwxyz
+3 pages, 16 bytes
+VM:
+	 0-7  (8-[0,1])
+	 7-13 (8-[0,2])
+	13-16 (8-[1,4])
+
+abcdefghijklmnopqrstuvwxyz
+== delete {8, 7} ==
+abcdefghpqrstuvwxyz
+4 pages, 19 bytes
+VM:
+	 0-8  (8-[0,0])
+	 8-9  (8-[7,0])
+	 9-16 (8-[1,0])
+	16-19 (8-[1,4])
+
+abcdefghijklmnopqrstuvwxyz
+== delete {8, 8} ==
+abcdefghqrstuvwxyz
+3 pages, 18 bytes
+VM:
+	 0-8  (8-[0,0])
+	 8-15 (8-[1,0])
+	15-18 (8-[1,4])
+
+abcdefghijklmnopqrstuvwxyz
+== delete {8, 9} ==
+abcdefghrstuvwxyz
+4 pages, 17 bytes
+VM:
+	 0-8  (8-[0,0])
+	 8-8  (8-[0,8])
+	 8-14 (8-[0,2])
+	14-17 (8-[1,4])
+
+abcdefghijklmnopqrstuvwxyz
 == delete {0, 26} ==
-0 pages, 0 bytes
-
+2 pages, 0 bytes
 VM:
+	 0-0  (8-[0,8])
+	 0-0  (8-[1,7])
 
+abcdefghijklmnopqrstuvwxyz
 == delete {1, 25} ==
-1 pages, 1 bytes
 a
-VM:
-	 0-1  (8-[0,7])
-
-== delete {0, 25} ==
 1 pages, 1 bytes
-z
-VM:
-	 0-1  (8-[2,5])
-
-== delete {1, 24} ==
-2 pages, 2 bytes
-az
 VM:
 	 0-1  (8-[0,7])
-	 1-2  (8-[2,5])
+
+abcdefghijklmnopqrstuvwxyz
+== delete {0, 25} ==
+z
+1 pages, 1 bytes
+VM:
+	 0-1  (8-[0,7])
+
+abcdefghijklmnopqrstuvwxyz
+== delete {1, 24} ==
+az
+1 pages, 2 bytes
+VM:
+	 0-2  (8-[0,6])
 

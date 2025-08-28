@@ -1,0 +1,8 @@
+Debug: Testing position 5 insertion
+Building state...
+Current length: 22
+Current content: 'World Hello Beautiful!'
+Testing insertion at position 5...
+New length: 23
+New content: 'World- Hello Beautiful!'
+Debug test completed successfully

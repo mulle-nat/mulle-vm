@@ -20,10 +20,10 @@ static void   dump_vm( struct mulle_vm *vm)
    char                         buf[ 1024];
    const void                   *s;
    struct mulle_vm_statistics   statistics;
-   struct mulle_vm_mapping      *info;
    struct mulle_vm_page         *page;
+   struct mulle_vm_node         *node;
    unsigned int                 i;
-   uintptr_t                    vm_address;
+   uintptr_t                    vm_address = 0;
 
    statistics = mulle_vm_get_statistics( vm);
 
@@ -38,10 +38,9 @@ static void   dump_vm( struct mulle_vm *vm)
    fprintf( stderr, "adr-end (size-[fhole,ehole])\n");
 
    i = 0;
-   mulle_structarray_for( &vm->mappings, info)
+   mulle_vm_tree_for( &vm->tree, node)
    {
-      page       = info->page;
-      vm_address = info->address;
+      page       = node->page;
       ++i;
 
       // output vm range, size of pages, and hole in front and back
@@ -54,6 +53,8 @@ static void   dump_vm( struct mulle_vm *vm)
          page->size,
          page->used.location,
          page->size - mulle_range_get_max( page->used));
+
+      vm_address += page->used.length;
    }
    printf( "\n");
 }
@@ -63,20 +64,24 @@ static void   test_mulle_vm_for_empty( void)
 {
    struct mulle_vm   vm;
    int               count;
+   uintptr_t         vm_address;
+   struct mulle_vm_node *node;
 
    printf( "== Test mulle_vm_mapping_for with empty VM ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    show_vm( &vm);
 
    count = 0;
-   mulle_vm_mapping_for( &vm, info)
+   vm_address = 0;
+   mulle_vm_tree_for( &vm.tree, node)
    {
       printf( "Page %d: address=%lu, size=%lu, used=[%lu,%lu)\n",
               count,
-              info->address,
-              info->page->size,
-              info->page->used.location,
-              info->page->used.location + info->page->used.length);
+              vm_address,
+              node->page->size,
+              node->page->used.location,
+              node->page->used.location + node->page->used.length);
+      vm_address += node->page->used.length;
       count++;
    }
    printf( "Total pages enumerated: %d\n\n", count);
@@ -89,6 +94,8 @@ static void   test_mulle_vm_for_single_page( void)
 {
    struct mulle_vm   vm;
    int               count;
+   uintptr_t         vm_address;
+   struct mulle_vm_node *node;
 
    printf( "== Test mulle_vm_mapping_for with single page ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
@@ -97,14 +104,16 @@ static void   test_mulle_vm_for_single_page( void)
    show_vm( &vm);
 
    count = 0;
-   mulle_vm_mapping_for( &vm, info)
+   vm_address = 0;
+   mulle_vm_tree_for( &vm.tree, node)
    {
       printf( "Page %d: address=%lu, size=%lu, used=[%lu,%lu)\n",
               count,
-              info->address,
-              info->page->size,
-              info->page->used.location,
-              info->page->used.location + info->page->used.length);
+              vm_address,
+              node->page->size,
+              node->page->used.location,
+              node->page->used.location + node->page->used.length);
+      vm_address += node->page->used.length;
       count++;
    }
    printf( "Total pages enumerated: %d\n\n", count);
@@ -117,6 +126,8 @@ static void   test_mulle_vm_for_multiple_pages( void)
 {
    struct mulle_vm   vm;
    int               count;
+   uintptr_t         vm_address;
+   struct mulle_vm_node *node;
 
    printf( "== Test mulle_vm_mapping_for with multiple pages ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
@@ -132,14 +143,16 @@ static void   test_mulle_vm_for_multiple_pages( void)
    show_vm( &vm);
 
    count = 0;
-   mulle_vm_mapping_for( &vm, info)
+   vm_address = 0;
+   mulle_vm_tree_for( &vm.tree, node)
    {
       printf( "Page %d: address=%lu, size=%lu, used=[%lu,%lu)\n",
               count,
-              info->address,
-              info->page->size,
-              info->page->used.location,
-              info->page->used.location + info->page->used.length);
+              vm_address,
+              node->page->size,
+              node->page->used.location,
+              node->page->used.location + node->page->used.length);
+      vm_address += node->page->used.length;
       count++;
    }
    printf( "Total pages enumerated: %d\n\n", count);
@@ -152,19 +165,23 @@ static void   test_mulle_vm_for_null_vm( void)
 {
    struct mulle_vm   *vm;
    int               count;
+   uintptr_t         vm_address;
+   struct mulle_vm_node *node;
 
    printf( "== Test mulle_vm_mapping_for with NULL VM ==\n");
    vm = NULL;
 
    count = 0;
-   mulle_vm_mapping_for( vm, info)
+   vm_address = 0;
+   mulle_vm_tree_for( vm, node)
    {
       printf( "Page %d: address=%lu, size=%lu, used=[%lu,%lu)\n",
               count,
-              info->address,
-              info->page->size,
-              info->page->used.location,
-              info->page->used.location + info->page->used.length);
+              vm_address,
+              node->page->size,
+              node->page->used.location,
+              node->page->used.location + node->page->used.length);
+      vm_address += node->page->used.length;
       count++;
    }
    printf( "Total pages enumerated: %d\n\n", count);
@@ -177,6 +194,8 @@ static void   test_mulle_vm_for_detailed_info( void)
    int               count;
    char              buf[1024];
    const void        *s;
+   uintptr_t         vm_address;
+   struct mulle_vm_node *node;
 
    printf( "== Test mulle_vm_mapping_for with detailed page info ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
@@ -200,16 +219,18 @@ static void   test_mulle_vm_for_detailed_info( void)
    }
 
    count = 0;
-   mulle_vm_mapping_for( &vm, info)
+   vm_address = 0;
+   mulle_vm_tree_for( &vm.tree, node)
    {
       printf( "Page %d: address=%lu, size=%lu, used=[%lu,%lu), holes=[front:%lu, back:%lu]\n",
               count,
-              info->address,
-              info->page->size,
-              info->page->used.location,
-              info->page->used.location + info->page->used.length,
-              info->page->used.location,
-              info->page->size - (info->page->used.location + info->page->used.length));
+              vm_address,
+              node->page->size,
+              node->page->used.location,
+              node->page->used.location + node->page->used.length,
+              node->page->used.location,
+              node->page->size - (node->page->used.location + node->page->used.length));
+      vm_address += node->page->used.length;
       count++;
    }
    printf( "Total pages enumerated: %d\n\n", count);

@@ -20,7 +20,8 @@ int   main( void)
    int                  result;
    size_t               initial_len, insert_len, total_expected_len;
    size_t               insert_position;
-   
+   auto char            buf[ 256];
+
    mulle_printf( "mulle-vm Insert Middle Page Tests\n");
    mulle_printf( "==================================\n");
    
@@ -37,7 +38,7 @@ int   main( void)
    mulle_printf( "VM length after initial data: %zu bytes\n", vm_length);
    
    // Read complete content to verify initial state
-   range = mulle_range_make( 0, vm_length);
+   range    = mulle_range_make( 0, vm_length);
    read_ptr = mulle_vm_read( &vm, range, NULL);
    if( read_ptr)
    {
@@ -45,7 +46,10 @@ int   main( void)
    }
    else
    {
-      mulle_printf( "ERROR: Failed to read initial content\n");
+      if( mulle_vm_get_pagesize() != 8)
+         mulle_printf( "ERROR: Need to adapt test to pagesize %ld\n",  mulle_vm_get_pagesize());
+      else
+         mulle_printf( "ERROR: Failed to read initial content\n");
       return( 1);
    }
    
@@ -69,7 +73,7 @@ int   main( void)
    mulle_printf( "\nTest 3: Verify complete result\n");
    total_expected_len = initial_len + insert_len;
    range = mulle_range_make( 0, total_expected_len);
-   read_ptr = mulle_vm_read( &vm, range, NULL);
+   read_ptr = mulle_vm_read( &vm, range, buf);
    
    if( read_ptr)
    {
@@ -98,7 +102,7 @@ int   main( void)
    
    // Check first part ("AB")
    range = mulle_range_make( 0, 2);
-   read_ptr = mulle_vm_read( &vm, range, NULL);
+   read_ptr = mulle_vm_read( &vm, range, buf);
    if( read_ptr && memcmp( read_ptr, "AB", 2) == 0)
    {
       mulle_printf( "SUCCESS: First part correct: \"%.*s\"\n", 2, (char*)read_ptr);
@@ -111,7 +115,7 @@ int   main( void)
    
    // Check inserted part ("1234")
    range = mulle_range_make( 2, insert_len);
-   read_ptr = mulle_vm_read( &vm, range, NULL);
+   read_ptr = mulle_vm_read( &vm, range, buf);
    if( read_ptr && memcmp( read_ptr, insert_data, insert_len) == 0)
    {
       mulle_printf( "SUCCESS: Inserted part correct: \"%.*s\"\n", (int)insert_len, (char*)read_ptr);
@@ -124,7 +128,7 @@ int   main( void)
    
    // Check last part ("CD")
    range = mulle_range_make( 2 + insert_len, 2);
-   read_ptr = mulle_vm_read( &vm, range, NULL);
+   read_ptr = mulle_vm_read( &vm, range, buf);
    if( read_ptr && memcmp( read_ptr, "CD", 2) == 0)
    {
       mulle_printf( "SUCCESS: Last part correct: \"%.*s\"\n", 2, (char*)read_ptr);
