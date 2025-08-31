@@ -1,0 +1,39 @@
+=== New Functions Test ===
+pagesize = 8
+
+page_size=8, used_location=0, used_length=8
+first_ospage=8, last_ospage=8, total_used=8
+valid: NO
+
+page_size=8, used_location=1, used_length=6
+first_ospage=6, last_ospage=6, total_used=6
+valid: NO
+
+page_size=8, used_location=1, used_length=2
+first_ospage=2, last_ospage=2, total_used=2
+valid: NO
+
+page_size=8, used_location=6, used_length=2
+first_ospage=2, last_ospage=2, total_used=2
+valid: NO
+
+page_size=8, used_location=7, used_length=1
+first_ospage=1, last_ospage=1, total_used=1
+valid: NO
+
+page_size=16, used_location=1, used_length=12
+first_ospage=7, last_ospage=5, total_used=12
+valid: YES
+
+page_size=16, used_location=14, used_length=2
+first_ospage=0, last_ospage=2, total_used=2
+valid: YES
+
+page_size=16, used_location=0, used_length=16
+first_ospage=8, last_ospage=8, total_used=16
+valid: YES
+
+page_size=16, used_location=4, used_length=8
+first_ospage=4, last_ospage=4, total_used=8
+valid: YES
+

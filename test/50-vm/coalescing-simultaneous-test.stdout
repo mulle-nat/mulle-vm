@@ -1,0 +1,28 @@
+=== Testing simultaneous predecessor and successor coalescing ===
+Page size: 8 bytes
+
+=== Test 1: Simultaneous predecessor + successor coalescing ===
+Before: 2 pages, 10 bytes
+AAAABBCCCC
+After middle page deletion: 2 pages, 8 bytes
+AAAACCCC
+
+=== Test 2: Three consecutive pages - middle deletion ===
+Before: 2 pages, 10 bytes
+AAAABBCCCC
+After middle deletion: 2 pages, 8 bytes
+AAAACCCC
+
+=== Test 3: Complex multi-page scenario ===
+Before (5 pages): 2 pages, 10 bytes
+L1M1M2M3R1
+After deleting middle pages: 2 pages, 4 bytes
+L1R1
+
+=== Test 4: Single character bridging ===
+Before: 2 pages, 15 bytes
+LLLLLLLXRRRRRRR
+After bridge deletion: 2 pages, 14 bytes
+LLLLLLLRRRRRRR
+
+=== Simultaneous coalescing tests completed ===

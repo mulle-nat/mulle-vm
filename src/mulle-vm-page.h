@@ -220,7 +220,7 @@ static inline size_t
    if( end <= page->size - pagesize)
       return( 0);
 
-   length = page->size - end;
+   length = end - (page->size - pagesize);
    if( page->used.location > page->size - pagesize)
       length = page->used.length;
    return( length);

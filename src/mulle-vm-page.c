@@ -561,7 +561,7 @@ void  mulle_vm_page_free_unused_ospages( struct mulle_vm_page *page)
       {
          bytes = &((char *) page->bytes)[ page->size - pagesize];
          _mulle_vm_free_ospages_unlocked( bytes, pagesize);
-         page->used.length -= pagesize;
+         // do not adjust page->used.length
          page->size        -= pagesize;
       }
    }
