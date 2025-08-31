@@ -27,39 +27,6 @@ struct mulle_vm_config     mulle_vm_config_default =
 };
 
 
-
-#if 0
-/**
- **
- **
- **
- */
-static inline struct mulle_range
-mulle_vm_node_get_range( struct mulle_vm_node *info)
-{
-   if( ! info)
-      return( mulle_range_make_invalid());
-
-   return( mulle_range_make( info->address, info->page->used.length));
-}
-
-
-static inline struct mulle_data
-mulle_vm_node_get_data_in_range( struct mulle_vm_node *info,
-                                        struct mulle_range range)
-{
-   if( ! info)
-      return( mulle_data_make_invalid());
-
-   range.location -= info->address;
-   range           = mulle_range_validate_against_length( range, info->page->used.length);
-   return( mulle_data_make( mulle_vm_page_address( info->page, range.location),
-                            range.length));
-}
-#endif
-
-
-
 /**
  **
  **
@@ -110,10 +77,36 @@ void   mulle_vm_reset( struct mulle_vm *vm)
 
 static inline void   mulle_vm_assert( struct mulle_vm *vm)
 {
-   mulle_vm_for( vm, page)
+#ifndef NDEBUG
+   struct mulle_vm_page  *page;
+   struct mulle_rbnode   *rbnode;
+   char                  *complaint;
+
+   complaint = mulle__rbtree_validate( (struct mulle__rbtree *) &vm->tree.rbtree);
+   if( complaint)
    {
-      assert( page != 0 && "mulle-vm: mapping with no page");
+      mulle_fprintf( stderr, "tree corrupted: %s\n", complaint);
+      abort();
    }
+
+   complaint = mulle_vm_tree_validate( &vm->tree);
+   if( complaint)
+   {
+      mulle_fprintf( stderr, "node corrupted: %s\n", complaint);
+      abort();
+   }
+
+   mulle_vm_tree_for( &vm->tree, node)
+   {
+      page   = _mulle_vm_node_get_page( node);
+      rbnode = _mulle_vm_node_get_rbnode( node);
+
+      assert( page != NULL && "mulle-vm: mapping with no page");
+      assert( page->used.length && "mulle-vm: used out of bounds");
+      assert( (mulle_range_get_max( page->used) <= page->size) && "mulle-vm: used out of bounds");
+      assert( ! _mulle_rbnode_is_dirty( rbnode));
+   }
+#endif
 }
 
 
@@ -148,8 +141,6 @@ static inline size_t   round_down_to_pagesize( size_t size, size_t pagesize)
 {
    return( (size / pagesize) * pagesize);
 }
-
-
 
 
 /**
@@ -204,49 +195,6 @@ void   _mulle_vm_append_ospages( struct mulle_vm *vm,
    mulle_vm_page_init( page, pages, mulle_range_make( 0, length), size);
    mulle_vm_tree_add_page( &vm->tree, page);
 }
-
-#if 0
-void   mulle_vm_append_bytes( struct mulle_vm *vm, void *bytes, size_t length)
-{
-   struct mulle_vm_page   *page;
-
-   if( ! vm || ! bytes || length == 0)
-      return;
-
-   // Use the VM's page allocation system which handles proper alignment
-   page = _mulle_vm_new_page_with_bytes( vm, bytes, length);
-   mulle_vm_tree_add_page( &vm->tree, page);
-}
-#endif
-
-
-//
-// you must have called _mulle_vm_release_page( vm, end->page) beforehand
-//
-#ifndef MULLE_TEST
-static
-#endif
-#if 0 // TODO: implement mulle_vm_tree_remove
-int   mulle_vm_remove_page( struct mulle_vm *vm, uintptr_t location)
-{
-   return( mulle_vm_tree_remove( &vm->tree, location));
-}
-#endif
-
-
-#if 0 // TODO: implement mulle_vm_tree_insert
-static void  mulle_vm_insert_page( struct mulle_vm *vm,
-                                   struct mulle_vm_page *page,
-                                   uintptr_t location)
-
-{
-   mulle_vm_assert_page( vm, page);
-
-   mulle_vm_tree_insert( &vm->tree, page);
-
-   mulle_vm_assert( vm);
-}
-#endif
 
 
 
@@ -323,6 +271,7 @@ struct mulle_vm_node  *
    result.node->page = page; // Update tree node after potential COW
 
    // Shrink original page to only hold the head part
+   assert( page->used.location + head_len <= page->size);
    page->used.length = head_len;
 
    // Mark the node as dirty and recalculate tree totals
@@ -342,267 +291,153 @@ struct mulle_vm_node  *
 }
 
 
-#if 0 // TODO: fix missing semicolon and implement properly
-static void   mulle_vm_tree_did_write( struct mulle_vm *vm, struct mulle_rbnode *node)
-{
-   _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, node);
-   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
-}
-
-/**
- **
- **
- **
- */
-enum mulle_vm_insert_mode
-{
-   prepend,
-   append,
-   split,
-};
-
-int   mulle_vm_insert( struct mulle_vm *vm,
-                       struct mulle_range range,
-                       void *bytes)
-{
-   struct mulle_range                  head_range;
-   struct mulle_vm_page                *new_page;
-   struct mulle_vm_page                *tail_page;
-   struct mulle_vm_node                *info;
-   size_t                              available;
-   size_t                              count;
-   size_t                              length;
-   intptr_t                            idx;
-   int                                 append;
-   int                                 rval;
-   int                                 mode;
-   struct mulle_vm_tree_search_result  result;
-   struct mulle_range                  remainder;
-
-   if( ! vm)
-      return( EINVAL);
-
-   // hmm, OK...
-   if( range.length == 0)
-      return;
-
-   assert( bytes);
-
-   result = _mulle_vm_tree_search( &vm->tree, range.location);
-   if( ! mulle_vm_tree_search_result_is_valid( result))
-   {
-      length = mulle_vm_get_length( vm);
-      if( length != range.location) // clean append ?
-      {
-         errno = ERANGE;
-         return;
-      }
-
-      // append at end (ez)
-      new_page = _mulle_vm_new_page_with_bytes( vm, vm, bytes, range.length);
-      mulle_vm_insert_page( vm, new_page, range.location);
-      return;
-   }
-
-   // check if we are just at the end of the page, then we a) fill up
-   // current page b) copy pages worth of data into a new page
-   // c) prepend rest of data into following page or create another new page
-   page = mulle_vm_tree_search_result_get_page( result);
-   if( range.location && ! mulle_vm_tree_search_result_get_offset( result))
-   {
-
-   }
-
-   //
-   // if we are at the very start, we dial one back and try to fill up the
-   // previous page. Then we fill up pages worth of data into a new page
-   // c) prepend rest of data into following page  / create another new page
-   // pretty similiar
-   //
-   if( range.location && ! mulle_vm_tree_search_result_get_offset( result))
-   {
-      result         = _mulle_vm_tree_search( &vm->tree, range.location - 1);
-      assert( mulle_vm_tree_search_result_is_valid( result));
-      result.offset += 1;
-   }
-
-
-   // what remains, is we insert in the middle of an existing page. We
-   // split the page into two parts. Now its basically back to appending to
-   // a page
-
-   offset    = mulle_vm_tree_search_result_get_offset( result);
-
-   for(;;)
-   {
-      page      = mulle_vm_tree_search_result_get_page( result);
-      available = mulle_vm_page_get_available( result.info->page);
-
-      // we stuff as many bytes into this page and the remainder into next
-      // or new
-      while( available >= range.length)
-      {
-         result.info->page = _mulle_vm_will_write_page( vm, info->page);
-         r
-         rval              = _mulle_vm_page_insert_bytes( result.info->page,
-                                                          offset,
-                                                          bytes,
-                                                          range.length);
-         assert( ! rval);
-
-         range.location += available;
-         range.length   -= available;
-         bytes = &((char *) bytes)[ available];
-         // advertise that this node got larger
-         mulle_vm_tree_did_write( vm, result.node);
-
-         if( range.length == 0)
-      }
-   // otherw
-      if( available >= range.length)
-      {
-         // can't fail
-         mulle_vm_assert( vm);
-         return;
-      }
-
-
-      //
-      // if we only append, we can stuff part of the bytes into the
-      // previous page and then do a clean page insert behind it
-      //
-      if( append)
-      {
-         head_range = mulle_range_make( range.location, available);
-         info->page = _mulle_vm_will_write_page( vm, info->page);
-         rval       = _mulle_vm_page_insert_bytes( info->page, info->address, head_range, bytes);
-         assert( ! rval);
-
-         // reduce range we want to add at index
-         range = mulle_range_make( range.location + available,
-                                   range.length - available);
-         bytes = &((char *) bytes)[ available];
-      }
-      else
-      {
-         tail_page = _mulle_vm_split_page( vm, result, range.location);
-         mulle_vm_assert_page( vm, tail_page);
-      }
-   }
-
-   //
-   // so we insert at page after the current index
-   // the address will be automatically recomputed
-   //
-append:
-   new_page = _mulle_vm_new_page_with_bytes( vm, vm, bytes, range.length);
-   mulle_vm_insert_page( vm, new_page, range.location);
-
-   return;
-}
-#endif
-
-
-
-#if 0
-static int   _mulle_vm_insert_into_page( struct mulle_vm *vm,
-                                         struct mulle_vm_page *page,
-                                         struct mulle_vm_node *node,
-                                         uintptr_t offset,
-                                         void *bytes,
-                                         size_t length)
-{
-   struct mulle_rbnode   *rbnode;
-   int                   rval;
-
-   page = _mulle_vm_will_write_page( vm, page);
-   node->page = page;
-
-   rval = _mulle_vm_page_insert_bytes( page, offset, bytes, length);
-   if( rval != 0)
-      return( rval);
-
-   rbnode = _mulle_vm_node_get_rbnode( node);
-   _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
-   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
-
-   return( 0);
-}
-#endif
-
-
-#if 1 // CHATGPT
-static int
-   _mulle_vm_try_coalesce( struct mulle_vm *vm,
-                           struct mulle_vm_node *left,
-                           struct mulle_vm_node *right)
+//
+// this function will not walk dirty!!
+// the node you pass in may become invalid!!
+//
+void   _mulle_vm_try_coalesce( struct mulle_vm *vm,
+                               struct mulle_vm_node *node)
 {
    int                    rval;
-   size_t                 left_slack;
-   size_t                 right_slack;
-   size_t                 insert_len;
-   struct mulle_rbnode    *rbnode;
+   size_t                 node_front_available;
+   size_t                 node_back_available;
+   size_t                 left_back_available;
+   size_t                 right_front_available;
+   size_t                 left_available;
+   size_t                 right_available;
+   size_t                 node_available;
+   size_t                 node_front_occupied;
+   size_t                 node_back_occupied;
+   size_t                 pagesize;
+   struct mulle_vm_node   *left;
+   struct mulle_vm_node   *right;
    struct mulle_vm_page   *lpage;
    struct mulle_vm_page   *rpage;
+   struct mulle_vm_page   *page;
+   struct mulle_range     copy_range;
+   int                    coalesce_front;
+   int                    coalesce_back;
 
-   if( ! left || ! right)
-   {
-      return( 0);
-   }
-
-   lpage = left->page;
-   rpage = right->page;
-
-   left_slack  = mulle_vm_page_get_available_back( lpage);
-   right_slack = mulle_vm_page_get_available_front( rpage);
+   //if( ! node)
+      return;
 
    //
-   // Prefer merging into the page with more slack
+   // check if the front and back page are filling half a page.if they do
+   // we just don't bother with coalescing
    //
-   if( left_slack >= rpage->used.length)
+   page                  = mulle_vm_node_get_page( node);
+   node_front_available  = mulle_vm_page_get_available_front( page);
+   node_back_available   = mulle_vm_page_get_available_back( page);
+   pagesize              = mulle_vm_get_pagesize();
+   if( node_front_available < pagesize / 2 && node_back_available < pagesize / 2)
+      return;
+
+   left            = mulle_vm_tree_previous_node( &vm->tree, node);
+   right           = mulle_vm_tree_next_node( &vm->tree, node);
+
+   lpage           = mulle_vm_node_get_page( left);
+   rpage           = mulle_vm_node_get_page( right);
+
+   node_available  = mulle_vm_page_get_available( page);
+   left_available  = mulle_vm_page_get_available( lpage);
+   right_available = mulle_vm_page_get_available( rpage);
+
+   // Anothe easy cop out...
+   // Can we get (theoretically) a page back at all ?
+   // Else we don't bother...
+   if( left_available + node_available < pagesize
+       && right_available + node_available < pagesize)
+      return;
+
+   node_front_occupied = mulle_vm_page_get_used_length_first_ospage( page, pagesize);
+   node_back_occupied  = mulle_vm_page_get_used_length_last_ospage( page, pagesize);
+
+   left_back_available = mulle_vm_page_get_available_back( lpage);
+//   left_back_occupied    = pagesize - (left_back_available > pagesize ? pagesize : left_back_available);
+
+   //
+   // Can we offload from front page to previous node ?
+   // a) yes if back space is large enough
+   // b) yes if its a singlepage node and there is enough available space total
+   //
+   coalesce_front = left_back_available >= node_front_occupied
+                    || (left_available >= node_front_occupied && lpage->size == pagesize);
+
+   if( coalesce_front)
    {
       lpage      = _mulle_vm_will_write_page( vm, lpage);
       left->page = lpage;
 
-      insert_len = rpage->used.length;
-      rval = _mulle_vm_page_insert_bytes( lpage,
-                                          lpage->used.length,
-                                          &((char *) rpage->bytes)[ rpage->used.location],
-                                          insert_len);
-      if( rval != 0)
-         return( 0);  // Cannot coalesce, not enough space
+      assert( node_front_occupied <= page->used.length);
+      copy_range = mulle_range_make( page->used.location, node_front_occupied);
+      rval       = _mulle_vm_page_insert_bytes( lpage,
+                                                lpage->used.length,
+                                                &((char *) page->bytes)[ copy_range.location],
+                                                copy_range.length);
+      assert( ! rval);
+      // and mark as dirty
+      _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree,
+                                         _mulle_vm_node_get_rbnode( left));
 
-      rbnode = _mulle_vm_node_get_rbnode( left);
-      _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
-      mulle_vm_tree_remove_node( &vm->tree, right);
+      page                 = _mulle_vm_will_write_page( vm, page);
+      node->page           = page;
 
-      _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
-      return( 1);
+      assert( page->used.length >= copy_range.length);
+      page->used.location += copy_range.length;
+      page->used.length   -= copy_range.length;
+      _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree,
+                                         _mulle_vm_node_get_rbnode( node));
+
+      if( ! page->used.length)
+      {
+         // complete remove node and return
+         mulle_vm_tree_remove_node( &vm->tree, node);
+         return;
+      }
+
+      node_back_available = mulle_vm_page_get_available_back( page);
+      node_back_occupied  = mulle_vm_page_get_used_length_last_ospage( page, pagesize);
    }
 
-   if( right_slack >= lpage->used.length)
+   right_front_available = mulle_vm_page_get_available_front( rpage);
+//   right_front_occupied  = pagesize - (right_front_available > pagesize ? pagesize : right_front_available);
+
+   coalesce_back = right_front_available >= node_back_occupied
+                   || (right_available >= node_back_occupied && rpage->size == pagesize);
+   if( coalesce_back)
    {
       rpage       = _mulle_vm_will_write_page( vm, rpage);
       right->page = rpage;
 
-      insert_len = lpage->used.length;
+      assert( node_back_occupied <= page->used.length);
+      copy_range = mulle_range_make( mulle_range_get_max( page->used) - node_back_occupied,
+                                     node_back_occupied);
       rval       = _mulle_vm_page_insert_bytes( rpage,
                                                 0,
-                                                &((char *) lpage->bytes)[ lpage->used.location],
-                                                insert_len);
-      if( rval != 0)
-         return( 0);  // Cannot coalesce, not enough space
+                                                &((char *) page->bytes)[ copy_range.location],
+                                                copy_range.length);
+      assert( ! rval);
 
-      rbnode = _mulle_vm_node_get_rbnode( right);
-      _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
+      _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree,
+                                         _mulle_vm_node_get_rbnode( right));
 
-      mulle_vm_tree_remove_node( &vm->tree, left);
+      page                 = _mulle_vm_will_write_page( vm, page);
+      node->page           = page;
 
-      _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
-      return( 1);
+      assert( page->used.length >= copy_range.length);
+      page->used.location += copy_range.length;
+      page->used.length   -= copy_range.length;
+      _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree,
+                                         _mulle_vm_node_get_rbnode( node));
+
+      if( ! page->used.length)
+      {
+         mulle_vm_tree_remove_node( &vm->tree, node);
+         return;
+      }
    }
 
-   return( 0);
+   mulle_vm_page_free_unused_ospages( page);
 }
 
 
@@ -644,10 +479,11 @@ int   _mulle_vm_insert( struct mulle_vm *vm,
    size_t                               front_length;
    size_t                               insert_length;
    struct mulle_vm_node                 *tail_node;
+   struct mulle_vm_node                 *insert_node;
+   struct mulle_vm_node                 *node;
    struct mulle_vm_page                 *tail_page;
    struct mulle_vm_page                 *insert_page;
    struct mulle_vm_page                 *page;
-   struct mulle_vm_node                 *node;
    struct mulle_vm_tree_search_result   result;
 
    assert( vm);
@@ -674,6 +510,7 @@ int   _mulle_vm_insert( struct mulle_vm *vm,
          insert_page = _mulle_vm_new_page_with_bytes( vm, bytes, insert_length);
          mulle_vm_tree_add_page( &vm->tree, insert_page);
          mulle_vm_page_release( insert_page);
+         // nothing to coalesce for sure
          return( 0);
       }
 
@@ -735,8 +572,10 @@ int   _mulle_vm_insert( struct mulle_vm *vm,
             // above that we cant do a "cheap" insert into available
             //
             insert_page = _mulle_vm_new_page_with_bytes( vm, bytes, insert_length);
-            mulle_vm_tree_insert_page_before_node( &vm->tree, insert_page, tail_node);
+            node = mulle_vm_tree_insert_page_before_node( &vm->tree, insert_page, tail_node);
             mulle_vm_page_release( insert_page);
+            _mulle_vm_try_coalesce( vm, node);   // why not ...
+            _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
             return( 0);
          }
          page = _mulle_vm_node_get_page( node);
@@ -786,8 +625,11 @@ int   _mulle_vm_insert( struct mulle_vm *vm,
    // to the next pagesize and spill over to front and back but
    //
    insert_page = _mulle_vm_new_page_with_bytes( vm, bytes, insert_length);
-   mulle_vm_tree_insert_page_after_node( &vm->tree, insert_page, node);
+   insert_node = mulle_vm_tree_insert_page_after_node( &vm->tree, insert_page, node);
    mulle_vm_page_release( insert_page);
+
+   _mulle_vm_try_coalesce( vm, insert_node);
+   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
 
    return( 0);
 }
@@ -797,9 +639,50 @@ void   _mulle_vm_append( struct mulle_vm *vm, void *bytes, size_t length)
 {
    struct mulle_range   range;
 
-   range = mulle_range_make( mulle_vm_get_length( vm),
-                             length);
+   range = mulle_range_make( mulle_vm_get_length( vm), length);
    _mulle_vm_insert( vm, range, bytes);
+}
+
+
+void   mulle_vm_node_printf( FILE *fp, void *p)
+{
+   struct mulle_vm_node *node = (struct mulle_vm_node *) p;
+
+   mulle_fprintf( fp, "{ page=%p, length=%zu, total=%zu}",
+                      node->page, node->page->used.length, node->total);
+
+}
+
+
+#ifdef DEBUG
+long   mulle_vm_delete_break = 100241800;
+long   mulle_vm_delete_attempt;
+#endif
+
+void  mulle_vm_tree_write_dot_file( char *filename,
+                                    struct mulle_vm_tree *tree,
+                                    void (*print_value_fn)( FILE *fp, void *))
+{
+   FILE   *fp;
+
+   fp = fopen( filename, "w");
+   mulle__rbtree_node_dot_fprintf( fp,
+                                   (struct mulle__rbtree *) &tree->rbtree,
+                                   print_value_fn);
+   fclose( fp);
+}
+
+
+static inline void   mulle_vm_mark_node_as_dirty( struct mulle_vm *vm,
+                                                  struct mulle_vm_node *node)
+{
+   struct mulle_rbnode   *rbnode;
+
+   if( node)
+   {
+      rbnode = _mulle_vm_node_get_rbnode( node);
+      _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
+   }
 }
 
 
@@ -809,19 +692,20 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
    size_t                               length;
    size_t                               start_offset;
    size_t                               end_offset;
-   size_t                               page_capacity;
-   struct mulle_rbnode                  *rbnode;
    struct mulle_vm_node                 *node;
-   struct mulle_vm_node                 *prev;
-   struct mulle_vm_node                 *next;
-   struct mulle_vm_node                 *next_node;
+   struct mulle_vm_node                 *middle_node;
+   struct mulle_vm_node                 *prev_node;
    struct mulle_vm_page                 *page;
-   struct mulle_vm_page                 *tmp;
    struct mulle_vm_tree_search_result   start_result;
    struct mulle_vm_tree_search_result   end_result;
    uint8_t                              *delete_ptr;
    uint8_t                              *keep;
    uint8_t                              *sentinel;
+
+#ifdef DEBUG
+   ++mulle_vm_delete_attempt;
+   assert( mulle_vm_delete_attempt <= mulle_vm_delete_break);
+#endif
 
    assert( vm);
    mulle_vm_assert( vm);
@@ -838,8 +722,36 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
    end_result   = _mulle_vm_tree_search( &vm->tree,
                                          mulle_range_get_last_location( range));
 
-   assert( mulle_vm_tree_search_result_is_valid( start_result));
-   assert( mulle_vm_tree_search_result_is_valid( end_result));
+#ifndef NDEBUG
+   {
+      extern struct mulle_vm_tree_search_result
+         _mulle_vm_tree_search_trace( struct mulle_vm_tree *tree,
+                                      uintptr_t position);
+
+      if( ! mulle_vm_tree_search_result_is_valid( start_result))
+      {
+         mulle__rbtree_node_dot_fprintf( stderr,
+                                         (struct mulle__rbtree *) &vm->tree.rbtree,
+                                         mulle_vm_node_printf);
+         _mulle_vm_tree_search_trace( &vm->tree, range.location);
+         abort();
+      }
+
+      if( ! mulle_vm_tree_search_result_is_valid( end_result))
+      {
+         mulle__rbtree_node_dot_fprintf( stderr,
+                                         (struct mulle__rbtree *) &vm->tree.rbtree,
+                                         mulle_vm_node_printf);
+         _mulle_vm_tree_search_trace( &vm->tree, mulle_range_get_last_location( range));
+         abort();
+      }
+   }
+#endif
+
+#ifdef DEBUG
+   if( mulle_vm_delete_attempt == mulle_vm_delete_break)
+      mulle_vm_tree_write_dot_file( "a.dot", &vm->tree, mulle_vm_node_printf);
+#endif
 
    /* SINGLE-PAGE DELETE */
    if( start_result.node == end_result.node)
@@ -847,7 +759,7 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
       page         = mulle_vm_tree_search_result_get_page( start_result);
       start_offset = mulle_vm_tree_search_result_get_offset( start_result);
 
-      page = _mulle_vm_will_write_page( vm, page);
+      page                    = _mulle_vm_will_write_page( vm, page);
       start_result.node->page = page;
 
       /* handle front, back, or middle deletion */
@@ -855,46 +767,39 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
       {
          /* delete from front */
          page->used.location += range.length;
+         assert( page->used.length >= range.length);
          page->used.length   -= range.length;
       }
-      else if( start_offset + range.length == page->used.length)
+      else
+         if( start_offset + range.length == page->used.length)
+         {
+            /* delete from back */
+            assert( page->used.length >= range.length);
+            page->used.length -= range.length;
+         }
+         else
+         {
+            /* delete middle: shift trailing bytes down */
+            delete_ptr = &((uint8_t *) page->bytes)[ page->used.location + start_offset];
+            keep       = &((uint8_t *) delete_ptr)[ range.length];
+            sentinel   = &((uint8_t *) page->bytes)[ page->used.location + page->used.length];
+
+            memmove( delete_ptr, keep, (char *) sentinel - (char *) keep);
+            assert( page->used.length >= range.length);
+            page->used.length -= range.length;
+         }
+
+      if( ! page->used.length)
       {
-         /* delete from back */
-         page->used.length -= range.length;
+         mulle_vm_tree_remove_node( &vm->tree, start_result.node);
       }
       else
       {
-         /* delete middle: shift trailing bytes down */
-         delete_ptr = &((uint8_t *) page->bytes)[ page->used.location + start_offset];
-         keep       = &((uint8_t *) delete_ptr)[ range.length];
-         sentinel   = &((uint8_t *) page->bytes)[ page->used.location + page->used.length];
+         mulle_vm_mark_node_as_dirty( vm, start_result.node);
 
-         memmove( delete_ptr, keep, (char *) sentinel - (char *) keep);
-         page->used.length -= range.length;
-      }
-
-      rbnode = _mulle_vm_node_get_rbnode( start_result.node);
-      _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
-      _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
-
-      //_mulle_vm_free_unused_ospages( vm, page);
-
-      /* coalesce if small */
-      page_capacity = page->size;
-      if( page->used.length <= page_capacity / 2)
-      {
-         node = start_result.node;
-         prev = mulle_vm_tree_previous_node( &vm->tree, node);
-         next = mulle_vm_tree_next_node( &vm->tree, node);
-
-         if( prev)
-         {
-            _mulle_vm_try_coalesce( vm, prev, node);
-         }
-         else if( next)
-         {
-            _mulle_vm_try_coalesce( vm, node, next);
-         }
+         /* coalesce if small */
+         _mulle_vm_try_coalesce( vm, start_result.node);
+         _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
       }
 
       mulle_vm_assert( vm);
@@ -902,310 +807,117 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
    }
 
    /* MULTI-PAGE DELETE */
-   node = start_result.node;
-   page = node->page;
-   start_offset = mulle_vm_tree_search_result_get_offset( start_result);
 
-   page = _mulle_vm_will_write_page( vm, page);
-   node->page = page;
-   /* trim first page to head part */
-   page->used.length = start_offset;
+   /* trim last page to tail part or remove */
+   node        = end_result.node;
+   // remember predecessor node
+   middle_node = mulle_vm_tree_previous_node( &vm->tree, node);
+   end_offset  = mulle_vm_tree_search_result_get_offset( end_result);
 
-   rbnode = _mulle_vm_node_get_rbnode( node);
-   _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
-
-   // _mulle_vm_free_unused_ospages( vm, page);
-
-   /* trim last page to tail part */
-   node = end_result.node;
-   tmp  = node->page;
-   end_offset = mulle_vm_tree_search_result_get_offset( end_result);
-
-   tmp = _mulle_vm_will_write_page( vm, tmp);
-   node->page = tmp;
-
-   if( end_offset + 1 < tmp->used.length)
+   if( end_offset + 1 == node->page->used.length)
    {
-      size_t tail_len = tmp->used.length - end_offset - 1;
-      memmove( tmp->bytes, &((uint8_t *) tmp->bytes)[ tmp->used.location + end_offset + 1], tail_len);
-      tmp->used.location = 0;
-      tmp->used.length   = tail_len;
+      mulle_vm_tree_remove_node( &vm->tree, end_result.node);
+      end_result.node = NULL;
    }
    else
    {
-      tmp->used.length = 0;
-   }
+      node->page = _mulle_vm_will_write_page( vm, node->page);
+      page       = node->page;
 
-   rbnode = _mulle_vm_node_get_rbnode( node);
-   _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
-   // _mulle_vm_free_unused_ospages( vm, tmp);
+      assert( page->used.location + end_offset + 1 <= page->size);
+
+      page->used.location += end_offset + 1;
+      page->used.length   -= end_offset + 1;
+      mulle_vm_mark_node_as_dirty( vm, node);
+
+      _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+   }
+   mulle_vm_assert( vm);
+
+#ifdef DEBUG
+   if( mulle_vm_delete_attempt == mulle_vm_delete_break)
+      mulle_vm_tree_write_dot_file( "b.dot", &vm->tree, mulle_vm_node_printf);
+#endif
 
    /* remove full pages in between */
-   node = mulle_vm_tree_next_node( &vm->tree, start_result.node);
-   while( node && node != end_result.node)
+   for( node = middle_node; node && node != start_result.node; node = prev_node)
    {
-      next_node = mulle_vm_tree_next_node( &vm->tree, node);
+      prev_node = mulle_vm_tree_previous_node( &vm->tree, node);
+      if( mulle_vm_delete_attempt == mulle_vm_delete_break)
+         _mulle__rbtree_enable_marking( (struct mulle__rbtree *) &vm->tree.rbtree);
 
-      mulle_vm_tree_remove_node( &vm->tree, node);
-      node = next_node;
+      // mulle_vm_tree_remove_node( &vm->tree,node);
+      {
+         struct mulle_rbnode   *rbnode;
+
+         rbnode = _mulle_vm_node_get_rbnode( node);
+         {
+            struct mulle_allocator   *allocator;
+            void                     *value;
+            struct mulle_rbtree      *rb_tree  = (struct mulle_rbtree *) &vm->tree;
+            struct mulle__rbtree     *rb__tree = (struct mulle__rbtree *) &vm->tree;
+
+            value     = _mulle__rbtree_get_node_value( rb__tree, rbnode);
+            allocator = _mulle_rbtree_get_allocator( rb_tree);
+            (*rb_tree->callback.release)( &rb_tree->callback, value, allocator);
+//            _mulle__rbtree_mark_node_as_dirty( rb__tree, rbnode); // this will marker parents
+            _mulle__rbtree_remove_node( rb__tree, rbnode);
+
+#ifdef DEBUG
+             if( mulle_vm_delete_attempt == mulle_vm_delete_break)
+                 mulle_vm_tree_write_dot_file( "c.dot", &vm->tree, mulle_vm_node_printf);
+#endif
+            _mulle_rbtree_walk_dirty( rb_tree);
+         }
+      }
+
+      mulle_vm_assert( vm);
    }
+
+   // trim down first node (or remove)
+   start_offset = mulle_vm_tree_search_result_get_offset( start_result);
+
+   if( ! start_offset)
+   {
+      mulle_vm_tree_remove_node( &vm->tree, start_result.node);
+      start_result.node = NULL;
+   }
+   else
+   {
+      node              = start_result.node;
+      node->page        = _mulle_vm_will_write_page( vm, node->page);
+      page              = node->page;
+
+      assert( page->used.location + start_offset <= page->size);
+
+      page->used.length = start_offset;
+      mulle_vm_mark_node_as_dirty( vm, node);
+
+      _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+   }
+   mulle_vm_assert( vm);
+
+   /* coalesce head and tail survivors if small */
+   /* if we removed both, we could want to coalesce the predecessor
+    * or successor, is it worth it ? */
+   if( end_result.node)
+      _mulle_vm_try_coalesce( vm, end_result.node);
+
+   if( start_result.node)
+      _mulle_vm_try_coalesce( vm, start_result.node);
+
 
    _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
 
-   /* coalesce head and tail survivors if small */
-   node = start_result.node;
-   page = node->page;
-   if( page && page->used.length && page->used.length <= page->size / 2)
-   {
-      prev = mulle_vm_tree_previous_node( &vm->tree, node);
-      next = mulle_vm_tree_next_node( &vm->tree, node);
+#ifdef DEBUG
+   if( mulle_vm_delete_attempt == mulle_vm_delete_break)
+      mulle_vm_tree_write_dot_file( "c.dot", &vm->tree, mulle_vm_node_printf);
 
-      if( prev)
-      {
-         _mulle_vm_try_coalesce( vm, prev, node);
-      }
-      else if( next)
-      {
-         _mulle_vm_try_coalesce( vm, node, next);
-      }
-   }
-
-   node = end_result.node;
-   page = node->page;
-   if( page && page->used.length && page->used.length <= page->size / 2)
-   {
-      prev = mulle_vm_tree_previous_node( &vm->tree, node);
-      next = mulle_vm_tree_next_node( &vm->tree, node);
-
-      if( prev)
-      {
-         _mulle_vm_try_coalesce( vm, prev, node);
-      }
-      else if( next)
-      {
-         _mulle_vm_try_coalesce( vm, node, next);
-      }
-   }
+#endif
 
    mulle_vm_assert( vm);
    return;
 }
-
-
-#else
-
-int   mulle_vm_insert( struct mulle_vm *vm,
-                       struct mulle_range range,
-                       void *bytes)
-{
-   struct mulle_vm_page                 *first_page;
-   struct mulle_vm_page                 *insert_page;
-   struct mulle_vm_page                 *new_page;
-   struct mulle_vm_page                 *page;
-   struct mulle_vm_page                 *tail_page;
-   struct mulle_vm_tree_search_result   result;
-   size_t                               available_front;
-   size_t                               available_space;
-   size_t                               insert_length;
-   size_t                               vm_length;
-   int                                  rval;
-
-   if( ! vm || ! bytes)
-   {
-      errno = EINVAL;
-      return( -1);
-   }
-
-   insert_length = range.length;
-   if( insert_length == 0)
-      return( 0);
-
-   vm_length = mulle_vm_get_length( vm);
-   if( range.location == vm_length)
-   {
-      mulle_vm_append( vm, bytes, insert_length);
-      return( 0);
-   }
-
-   result = _mulle_vm_tree_search( &vm->tree, range.location);
-   if( ! mulle_vm_tree_search_result_is_valid( result))
-      return( EINVAL);
-
-   if( range.location == 0)
-   {
-      first_page = result.node->page;
-      available_front = mulle_vm_page_get_available_front( first_page);
-
-      if( available_front >= insert_length)
-      {
-         struct mulle_rbnode *rbnode;
-
-         first_page = _mulle_vm_will_write_page( vm, first_page);
-         result.node->page = first_page;
-
-         first_page->used.location -= insert_length;
-         first_page->used.length   += insert_length;
-
-         memcpy( (uint8_t *) first_page->bytes + first_page->used.location,
-                 bytes,
-                 insert_length);
-
-         // Update tree totals
-         rbnode = _mulle_vm_node_get_rbnode( result.node);
-         _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
-         _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
-
-         return( 0);
-      }
-
-      new_page = _mulle_vm_new_page_with_bytes( vm, vm, bytes, insert_length);
-      mulle_vm_tree_insert_page_before_node( &vm->tree, new_page, result.node);
-
-      return( 0);
-   }
-
-   page = result.node->page;
-   available_space = mulle_vm_page_get_available( page);
-
-   if( available_space >= insert_length)
-   {
-      rval = _mulle_vm_insert_into_page( vm, page, result.node, result.offset, bytes, insert_length);
-      return( rval);
-   }
-
-   tail_page = _mulle_vm_split( vm, result, result.offset);
-   insert_page = _mulle_vm_new_page_with_bytes( vm, vm, bytes, insert_length);
-   mulle_vm_tree_insert_page_after_node( &vm->tree, insert_page, result.node);
-
-   return( 0);
-}
-
-void   mulle_vm_delete( struct mulle_vm *vm,
-                        struct mulle_range range)
-{
-   struct mulle_vm_page                 *page;
-   size_t                               length;
-   uintptr_t                            offset;
-   void                                 *delete_ptr;
-   void                                 *keep;
-   void                                 *sentinel;
-   struct mulle_vm_tree_search_result   start_result;
-   struct mulle_vm_tree_search_result   end_result;
-
-   if( ! vm)
-      return;
-
-   mulle_vm_assert( vm);
-
-   length = mulle_vm_get_length( vm);
-   range  = mulle_range_validate_against_length( range, length);
-   if( ! range.length)
-      return;
-
-   start_result = _mulle_vm_tree_search( &vm->tree, range.location);
-   end_result   = _mulle_vm_tree_search( &vm->tree, mulle_range_get_last_location( range));
-
-   assert( mulle_vm_tree_search_result_is_valid( start_result));
-   assert( mulle_vm_tree_search_result_is_valid( end_result));
-
-   //
-   // special case if we only delete within one page
-   //
-   if( start_result.node == end_result.node)
-   {
-      // delete everything ?
-      page    = mulle_vm_tree_search_result_get_page( start_result);
-      offset  = mulle_vm_tree_search_result_get_offset( start_result);
-      if( offset == 0 && page->used.length == range.length)
-      {
-         // Complete page deletion - set page length to 0
-         page = _mulle_vm_will_write_page( vm, page);
-         start_result.node->page = page; // Update node's page reference in case COW happened
-         page->used.length = 0;
-
-         // Update tree totals
-         struct mulle_rbnode *rbnode = _mulle_vm_node_get_rbnode( start_result.node);
-         _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
-         _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
-
-         mulle_vm_assert( vm);
-         return;
-      }
-
-      page = _mulle_vm_will_write_page( vm, page);
-      start_result.node->page = page; // Update node's page reference in case COW happened
-
-      // remove stuff from front only ?
-      if( ! offset)
-      {
-         page->used.location += range.length;
-         page->used.length   -= range.length;
-      }
-      else
-      {
-         // remove stuff from back only ?
-         if( offset + range.length == page->used.length)
-         {
-            // nuthing to do here
-         }
-         else
-         {
-            // need to move bytes around here, we just move from the back to
-            // the front (for now)
-            //
-            // vm_address: 0x1000
-            // |
-            // __abcDEFgh__  size: 12
-            //   |        /
-            //   used:{ 2, 8 }
-            //
-            //
-            // delete:
-            //   range: { 0x1003, 3 }
-            //
-            //      old_middle
-            //      |  new_middle
-            //      |  |
-            // __abcDEFgh__  size: 12
-            //
-            // __abcDEFgh__    1
-            // __abcghFgh__    2
-            // __abcgh______   3
-
-            // figure out where the relative insertion point is from page->used.location
-
-            delete_ptr = &((char *) page->bytes)[ page->used.location + offset];
-            keep       = &((char *) delete_ptr)[ range.length];
-            sentinel   = &((char *) page->bytes)[ page->used.location + page->used.length];
-
-            memmove( delete_ptr, keep, (char*)sentinel - (char*)keep);
-         }
-      }
-
-      // Only decrease length if we haven't already done it above
-      if( offset != 0)
-      {
-         page->used.length -= range.length;
-      }
-
-      // Update tree node and recalculate totals
-      struct mulle_rbnode *rbnode = _mulle_vm_node_get_rbnode( start_result.node);
-      _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
-      _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
-
-      mulle_vm_assert( vm);
-      return;
-   }
-
-   //
-   // TODO: multipage handling for tree-based implementation
-   // For now, only support single-page deletions
-   //
-   errno = ENOSYS; // Not implemented for multi-page deletions yet
-   mulle_vm_assert( vm);
-}
-
-#endif
 
 
 /*
@@ -1382,108 +1094,6 @@ void   *_mulle_vm_io( struct mulle_vm *vm,
 }
 
 
-#if 0
-static int  _mulle_vm_walk_forward( struct mulle_vm *vm,
-                                    struct mulle_range range,
-                                    mulle_vm_walk_callback_t  *callback,
-                                    void *userinfo)
-{
-   intptr_t                            offset;
-   struct mulle_vm_node                *startinfo;
-   struct mulle_vm_node                *endinfo;
-   struct mulle_vm_node                *info;
-   int                                 rval;
-   struct mulle_data                   data;
-   struct mulle_range                  page_range;
-   struct mulle_range                  intersection;
-   uintptr_t                           start_location;
-   uintptr_t                           end_location;
-   intptr_t                            startinfo_index;
-   intptr_t                            endinfo_index;
-   intptr_t                            info_index;
-   struct mulle_vm_tree_search_result  start;
-   struct mulle_vm_tree_search_result  end;
-   uintptr_t                           vm_address;
-
-
-   start_location = range.location;
-   end_location   = mulle_range_get_last_location( range);
-
-   start      = _mulle_vm_tree_search( vm, start_location);
-   assert( start.node);
-   startinfo  = start.info;
-   vm_address = start_location;
-   offset     = (intptr_t) start.offset;
-
-   // Check if the read fits entirely inside the found page
-   if( offset + range.length <= startinfo->page->used.length)
-   {
-      end     = start;
-   }
-   else
-   {
-      end     = _mulle_vm_tree_search( vm, end_location);
-      assert( end.node);
-   }
-   endinfo = end.info;
-
-   page_range   = mulle_range_make( vm_address, page->used.length);
-   intersection = mulle_range_intersection( page_range, range);
-   offset       = page->used.location + intersection.location - vm_address;
-   data         = mulle_data_make( &((char *) page->bytes)[ offset],
-                                   intersection.length);
-   rval         = (*callback)( data, intersection, userinfo);
-
-   // preset errno to something, that callback then can change
-   errno = ENOENT;
-   if( rval || end.node == start.node)
-      return( rval);
-
-   vm_address += intersection.length;  // move to end
-
-   // Copy data page by page until either done or error
-   node = start;
-   for( ;;)
-   {
-      node = _mulle_vm_tree_next_node( &vm->tree, node);
-      if( node == end.node)
-         break;
-
-      page_range = mulle_range_make( vm_address, page->used.length);
-      data       = mulle_data_make( &((char *) page->bytes)[ page->used.location],
-                                   page->used.length);
-      rval       = (*callback)( data, page_range, userinfo);
-      if( rval)
-         return( rval);
-
-      vm_address += page->used.length;
-   }
-
-   assert( endinfo != startinfo);  // just to think less here :)
-
-   page_range      = mulle_range_make( vm_address, page->used.length);
-   intersection    = mulle_range_intersection( page_range, range);
-   data            = mulle_data_make( &((char *) page->bytes)[ page->used.location],
-                                      intersection.length);
-
-   rval            = (*callback)( data, intersection, userinfo);
-   return( rval);
-}
-#endif
-
-
-#if 0 // TODO: implement walk functions with proper tree navigation
-static int  _mulle_vm_walk_backward( struct mulle_vm *vm,
-                                     struct mulle_range range,
-                                     mulle_vm_walk_callback_t  *callback,
-                                     void *userinfo)
-{
-   // Implementation disabled for now
-   return;
-}
-#endif
-
-
 int  _mulle_vm_walk( struct mulle_vm *vm,
                      struct mulle_range range,
                      mulle_vm_walk_callback_t  *callback,
@@ -1500,7 +1110,10 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
    size_t                               vm_length;
 
    if( ! vm || ! callback)
-      return( EINVAL);
+   {
+      errno = EINVAL;
+      return( -1);
+   }
 
    vm_length = mulle_vm_get_length( vm);
    range     = mulle_range_validate_against_length( range, vm_length);
@@ -1515,13 +1128,12 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
 
    // Find the starting page
    start_result = _mulle_vm_tree_search( &vm->tree, range.location);
-   if( ! mulle_vm_tree_search_result_is_valid( start_result))
-      return( ERANGE);
+   end_result   = _mulle_vm_tree_search( &vm->tree, mulle_range_get_last_location( range));
 
-   // Find the ending page
-   end_result = _mulle_vm_tree_search( &vm->tree, mulle_range_get_last_location( range));
-   if( ! mulle_vm_tree_search_result_is_valid( end_result))
-      return( ERANGE);
+   // MEMO this can't really happen since we validate above so we just
+   // assert
+   assert( mulle_vm_tree_search_result_is_valid( start_result));
+   assert( mulle_vm_tree_search_result_is_valid( end_result));
 
    if( direction > 0)
    {
@@ -1750,10 +1362,10 @@ int   mulle_vm_paste( struct mulle_vm *dst,
                       struct mulle_range range,
                       struct mulle_vm *src)
 {
-   struct mulle_vm_node    *start_node;
-   struct mulle_vm_node    *tail_node;
-   struct mulle_vm_page    *tail_page;
-   size_t                  length;
+   struct mulle_vm_node                 *start_node;
+   struct mulle_vm_node                 *node;
+   size_t                               length;
+   struct mulle_vm_tree_search_result   start_result;
 
    if( dst == src)
    {
@@ -1762,75 +1374,44 @@ int   mulle_vm_paste( struct mulle_vm *dst,
    }
 
    // delete range if any
-   // TODO: mulle_vm_delete( dst, range);
+   mulle_vm_delete( dst, range);
 
    // if nothing to paste, we is done (so mean we must have a page in src)
    length = mulle_vm_get_length( src);
    if( length == 0)
       return( 0);
 
-   tail_node   = NULL;
-   start_node       = NULL;
-   struct mulle_vm_tree_search_result start_result;
-   
    start_result = _mulle_vm_tree_search( &dst->tree, range.location);
-   if( mulle_vm_tree_search_result_is_valid( start_result))
-   {
-      start_node     = start_result.node;
-      tail_node = _mulle_vm_split( dst, start_result, range.location);
-      if( ! tail_node)
-         start_node = NULL; // if no split happened, start_node is the insertion point
-   }
+   start_node   = mulle_vm_tree_search_result_get_node( start_result);
 
-   // Insert all pages from src into dst
-   mulle_vm_tree_for( &src->tree, src_node)
+   // append: get this out of the way
+   if( ! mulle_vm_tree_search_result_is_valid( start_result))
    {
-      //mulle_vm_page_retain( src_node->page);
-      if( start_node)
-      {
-         mulle_vm_tree_insert_page_after_node( &dst->tree, src_node->page, start_node);
-         struct mulle_vm_tree_search_result next_result = _mulle_vm_tree_search( &dst->tree, range.location + src_node->page->used.length);
-         start_node = next_result.node;
-      }
-      else
+      mulle_vm_tree_for( &src->tree, src_node)
       {
          mulle_vm_tree_add_page( &dst->tree, src_node->page);
       }
+      return( 0);
    }
 
-   if( tail_node)
+   // prepend: get this out of the way
+   if( ! range.location)
    {
-      tail_page = _mulle_vm_node_get_page( tail_node);
-      // Find the last inserted node to check if we can join with tail_page
-      struct mulle_vm_tree_search_result last_result = _mulle_vm_tree_search( &dst->tree, range.location);
-      if( mulle_vm_tree_search_result_is_valid( last_result))
+      node = start_node;
+      mulle_vm_tree_for_reverse( &src->tree, src_node)
       {
-         struct mulle_vm_node *last_node = last_result.node;
-         switch( _mulle_vm_page_join( last_node->page, tail_page))
-         {
-         case -1 : // can drop tail
-            mulle_vm_page_release( tail_page);
-            break;
-
-         case 0 :  // no join possible, add tail separately
-            mulle_vm_tree_add_page( &dst->tree, tail_page);
-            break;
-
-         case +1 : // can drop prev (replace with tail)
-            mulle_vm_tree_remove( &dst->tree, range.location);
-            mulle_vm_tree_add_page( &dst->tree, tail_page);
-            break;
-         }
+         node = mulle_vm_tree_insert_page_before_node( &dst->tree, src_node->page, node);
       }
-      else
-      {
-         mulle_vm_tree_add_page( &dst->tree, tail_page);
-      }
+      return( 0);
    }
 
-   // Note: With tree-based implementation, addresses are computed dynamically
-   // based on tree traversal order and total lengths, so no manual address
-   // adjustment is needed here like in the old mappings array approach.
+   // ok split off current node
+   _mulle_vm_split( dst, start_result, range.location);
+   node      = start_node;
+   mulle_vm_tree_for( &src->tree, src_node)
+   {
+      node = mulle_vm_tree_insert_page_after_node( &dst->tree, src_node->page, node);
+   }
 
    mulle_vm_assert( src);
    mulle_vm_assert( dst);

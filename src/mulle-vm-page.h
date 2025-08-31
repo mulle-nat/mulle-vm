@@ -171,24 +171,59 @@ static inline struct mulle_data
 }
 
 
-static inline uintptr_t
+static inline size_t
    mulle_vm_page_get_available( struct mulle_vm_page *page)
 {
    return( page ? page->size - page->used.length : 0);
 }
 
 
-static inline uintptr_t
+static inline size_t
    mulle_vm_page_get_available_front( struct mulle_vm_page *page)
 {
    return( page ? page->used.location : 0);
 }
 
 
-static inline uintptr_t
+static inline size_t
    mulle_vm_page_get_available_back( struct mulle_vm_page *page)
 {
    return( page ? page->size - mulle_range_get_max( page->used) : 0);
+}
+
+
+
+static inline size_t
+   mulle_vm_page_get_used_length_first_ospage( struct mulle_vm_page *page,
+                                               size_t pagesize)
+{
+   size_t   length;
+
+   if( page->used.location >= pagesize)
+      return( 0);
+
+   length = pagesize - page->used.location;
+   if( mulle_range_get_max( page->used) < pagesize)
+      length = page->used.length;
+   return( length);
+}
+
+
+static inline size_t
+   mulle_vm_page_get_used_length_last_ospage( struct mulle_vm_page *page,
+                                              size_t pagesize)
+{
+   size_t   end;
+   size_t   length;
+
+   end = mulle_range_get_max( page->used);
+   if( end <= page->size - pagesize)
+      return( 0);
+
+   length = page->size - end;
+   if( page->used.location > page->size - pagesize)
+      length = page->used.length;
+   return( length);
 }
 
 
@@ -253,6 +288,9 @@ static inline intptr_t
    return( rc);
 }
 
+
+MULLE__VM_GLOBAL
+void   mulle_vm_page_free_unused_ospages( struct mulle_vm_page *page);
 
 MULLE__VM_GLOBAL
 void   mulle_vm_reset_freed_ospages( void);

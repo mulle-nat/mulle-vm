@@ -100,6 +100,8 @@ static char *   mulle_vm_node_describe( struct mulle_container_valuecallback *ca
 }
 
 
+
+
 // Custom value callback structure
 static struct mulle_container_valuecallback   mulle_vm_node_callback =
 {
@@ -138,6 +140,46 @@ static int   mulle_vm_node_compare( void *a, void *b)
     if( node_a->page < node_b->page) return -1;
     if( node_a->page > node_b->page) return 1;
     return 0;
+}
+
+
+size_t  mulle_vm_tree_search_node_total( struct mulle_vm_tree *tree,
+                                         struct mulle_vm_node *node)
+{
+   struct mulle__rbtree   *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle_vm_node   *left;
+   struct mulle_vm_node   *right;
+   struct mulle_rbnode    *rbnode;
+   struct mulle_rbnode    *left_rbnode;
+   struct mulle_rbnode    *right_rbnode;
+   struct mulle_rbnode    *nil_node;
+   size_t                 total;
+
+   if( ! tree || ! node)
+      return( 0);
+
+   nil_node = _mulle__rbtree_get_nil_node( rb__tree);
+
+   rbnode = _mulle_vm_node_get_rbnode( node);
+   assert( rbnode != nil_node);
+
+   total = node->page->used.length;
+
+   left_rbnode = rbnode->_left;
+   if( left_rbnode != nil_node)
+   {
+      left   = _mulle_vm_rbnode_get_vm_node( left_rbnode);
+      total += mulle_vm_tree_search_node_total( tree, left);
+   }
+
+   right_rbnode = rbnode->_right;
+   if( right_rbnode != nil_node)
+   {
+      right  = _mulle_vm_rbnode_get_vm_node( right_rbnode);
+      total += mulle_vm_tree_search_node_total( tree, right);
+   }
+
+   return( total);
 }
 
 //
@@ -190,11 +232,14 @@ size_t   mulle_vm_tree_get_total_length( struct mulle_vm_tree *tree)
 char  *mulle_vm_tree_validate_total_length( struct mulle_vm_tree *tree)
 {
    struct mulle_vm_node   *node;
-   size_t               total;
+   size_t                 total;
 
    total = 0;
    mulle_rbtree_for( (struct mulle_rbtree *) tree, node)
    {
+      if( mulle_vm_tree_search_node_total( tree, node) != node->total)
+         return( "node total is wrong");
+
       total += node->page->used.length;
    }
 
@@ -204,7 +249,7 @@ char  *mulle_vm_tree_validate_total_length( struct mulle_vm_tree *tree)
 }
 
 
-char  *mulle_vm_tree_validate( struct mulle_rbtree *tree)
+char  *mulle_vm_tree_validate( struct mulle_vm_tree *tree)
 {
    char   *err;
 
@@ -326,29 +371,6 @@ struct mulle_vm_node *   _mulle_vm_tree_insert_page_after_node( struct mulle_rbt
 }
 
 
-int   _mulle_vm_tree_remove_page( struct mulle_vm_tree *tree,
-                                  struct mulle_vm_page *page)
-{
-   struct mulle_vm_node   *found;
-
-   found = NULL;
-   mulle_vm_tree_for( tree, node)
-   {
-      if( page == node->page)
-      {
-         found = node;
-         break;
-      }
-   }
-
-   if( found)
-      return( _mulle_vm_tree_remove_node( tree, found));
-
-   errno = ENOENT;
-   return( -1);
-}
-
-
 int   _mulle_vm_tree_remove_node( struct mulle_vm_tree *tree,
                                   struct mulle_vm_node *node)
 {
@@ -375,6 +397,116 @@ int   _mulle_vm_tree_remove( struct mulle_vm_tree *tree, uintptr_t position)
 }
 
 
+int   _mulle_vm_tree_remove_page( struct mulle_vm_tree *tree,
+                                  struct mulle_vm_page *page)
+{
+   struct mulle_vm_node   *found;
+
+   found = NULL;
+   mulle_vm_tree_for( tree, node)
+   {
+      if( page == node->page)
+      {
+         found = node;
+         break;
+      }
+   }
+
+   if( found)
+      return( _mulle_vm_tree_remove_node( tree, found));
+
+   errno = ENOENT;
+   return( -1);
+}
+
+
+struct mulle_vm_tree_search_result
+   _mulle_vm_tree_search_trace( struct mulle_vm_tree *tree,
+                                uintptr_t position)
+{
+   struct mulle__rbtree                 *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle_rbnode                  *nil;
+   struct mulle_rbnode                  *rbnode;
+   struct mulle_rbnode                  *root;
+   struct mulle_vm_node                 *node;
+   struct mulle_rbnode                  *left;
+   struct mulle_vm_node                 *right_node;
+   struct mulle_vm_node                 *left_node;
+   struct mulle_vm_tree_search_result   result = { 0 };
+   uintptr_t                            search_position;
+   size_t                               left_total;
+   size_t                               length;
+
+   nil  = _mulle__rbtree_get_nil_node( rb__tree);
+   root = _mulle__rbtree_get_root_node( rb__tree);
+
+   mulle_fprintf( stderr, "Start search for %td\n", position);
+   search_position = position;
+
+   for( rbnode = root; rbnode != nil;)
+   {
+       node       = _mulle__rbtree_get_node_value( rb__tree, rbnode);
+
+       // Get left subtree total
+       length     = node->page->used.length;
+       left_total = 0;
+       mulle_fprintf( stderr, "Visiting node with page %p with length %ld and total %td\n",
+                              node->page,
+                              node->page->used.length,
+                              node->total);
+       left       = rbnode->_left;
+       if( left != nil)
+       {
+           left_node = _mulle__rbtree_get_node_value( rb__tree, left);
+           mulle_fprintf( stderr, "Have left node with page %p with length %ld and total %td\n",
+                                  left_node->page,
+                                  left_node->page->used.length,
+                                  left_node->total);
+           left_total = left_node->total;
+       }
+
+       if( rbnode->_right != nil)
+       {
+           right_node = _mulle__rbtree_get_node_value( rb__tree, rbnode->_right);
+           mulle_fprintf( stderr, "Have right node with page %p with length %ld and total %td\n",
+                                  right_node->page,
+                                  right_node->page->used.length,
+                                  right_node->total);
+       }
+
+       // Case 1: Go left (position is in left subtree)
+       if( search_position < left_total)
+       {
+           mulle_fprintf( stderr, "%td < %td going left\n", search_position, left_total);
+           rbnode = left;
+           continue;
+       }
+
+       // Case 2: Found it (position is in current rbnode)
+       if( search_position < left_total + length)
+       {
+          mulle_fprintf( stderr, "Found it at %td < %td\n", search_position, left_total + length);
+          result.node   = node;
+          result.offset = search_position - left_total;
+          break;
+       }
+
+       mulle_fprintf( stderr, "Going right %td >= %td (now searching for %td)\n",
+                                    search_position, left_total + length,
+                                    search_position - (left_total + length));
+
+       // Case 3: Go right (position is in right subtree)
+       search_position -= (left_total + length);
+
+       rbnode           = rbnode->_right;
+   }
+
+   if( rbnode == nil)
+      mulle_fprintf( stderr, "Not found\n");
+   return( result);
+}
+
+
 //
 // Find node at a specific position using manual tree traversal
 // Returns the node containing the position and sets offset to the position within that node
@@ -387,11 +519,11 @@ struct mulle_vm_tree_search_result
 {
    struct mulle__rbtree                 *rb__tree = (struct mulle__rbtree *) tree;
    struct mulle_rbnode                  *nil;
-   struct mulle_rbnode                  *node;
+   struct mulle_rbnode                  *rbnode;
    struct mulle_rbnode                  *root;
-   struct mulle_vm_node                 *info;
+   struct mulle_vm_node                 *node;
    struct mulle_rbnode                  *left;
-   struct mulle_vm_node                 *left_info;
+   struct mulle_vm_node                 *left_node;
    struct mulle_vm_tree_search_result   result = { 0 };
    uintptr_t                            search_position;
    size_t                               left_total;
@@ -402,33 +534,32 @@ struct mulle_vm_tree_search_result
 
    search_position = position;
 
-
-   for( node = root; node != nil;)
+   for( rbnode = root; rbnode != nil;)
    {
-       info       = _mulle__rbtree_get_node_value( rb__tree, node);
+       node       = _mulle__rbtree_get_node_value( rb__tree, rbnode);
 
        // Get left subtree total
-       length     = info->page->used.length;
+       length     = node->page->used.length;
        left_total = 0;
 
-       left       = node->_left;
+       left       = rbnode->_left;
        if( left != nil)
        {
-           left_info  = _mulle__rbtree_get_node_value( rb__tree, left);
-           left_total = left_info->total;
+           left_node  = _mulle__rbtree_get_node_value( rb__tree, left);
+           left_total = left_node->total;
        }
 
        // Case 1: Go left (position is in left subtree)
        if( search_position < left_total)
        {
-           node = left;
+           rbnode = left;
            continue;
        }
 
-       // Case 2: Found it (position is in current node)
+       // Case 2: Found it (position is in current rbnode)
        if( search_position < left_total + length)
        {
-          result.node   = info;
+          result.node   = node;
           result.offset = search_position - left_total;
           break;
        }
@@ -436,7 +567,7 @@ struct mulle_vm_tree_search_result
        // Case 3: Go right (position is in right subtree)
        search_position -= (left_total + length);
 
-       node             = node->_right;
+       rbnode           = rbnode->_right;
    }
 
    return( result);

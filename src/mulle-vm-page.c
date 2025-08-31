@@ -201,9 +201,6 @@ void   mulle_vm_page_free( struct mulle_vm_page *page)
 }
 
 
-
-
-
 /**
  **
  **
@@ -418,7 +415,6 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
       return( -1);
    }
 
-
    // clean append to back
    adjacent = (page->used.length == offset);
    if( adjacent)
@@ -436,7 +432,7 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
       memcpy( &((char *) page->bytes)[ mulle_range_get_max( page->used)],
               bytes,
               length);
-      page->used.length  += length;
+      page->used.length += length;
       return( 0);
    }
 
@@ -538,6 +534,37 @@ int  _mulle_vm_page_insert_bytes( struct mulle_vm_page *page,
    page->used.length   += length;
 
    return( 0);
+}
+
+
+MULLE__VM_GLOBAL
+void  mulle_vm_page_free_unused_ospages( struct mulle_vm_page *page)
+{
+   size_t   pagesize;
+   void     *bytes;
+
+   pagesize = mulle_vm_get_pagesize();
+   while( page->used.location >= pagesize)
+   {
+      mulle_thread_mutex_do( global.lock)
+      {
+         _mulle_vm_free_ospages_unlocked( page->bytes, pagesize);
+         page->bytes          = &((char *) page->bytes)[ pagesize];
+         page->used.location -= pagesize;
+         page->size          -= pagesize;
+      }
+   }
+
+   while( page->used.location + page->used.length + pagesize <= page->size)
+   {
+      mulle_thread_mutex_do( global.lock)
+      {
+         bytes = &((char *) page->bytes)[ page->size - pagesize];
+         _mulle_vm_free_ospages_unlocked( bytes, pagesize);
+         page->used.length -= pagesize;
+         page->size        -= pagesize;
+      }
+   }
 }
 
 

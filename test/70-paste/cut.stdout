@@ -29,16 +29,14 @@ Cut result: 0
 Dest VM: 1 vm pages 7 os pages, 50 bytes
   Page 0: vm_addr=0, size=56, used=[1,50], retain_count=0
 Hello World! This is test data for cut operations. (length: 50)
-Source VM (after cut): 1 vm pages 7 os pages, 0 bytes
-  Page 0: vm_addr=0, size=56, used=[51,0], retain_count=0
+Source VM (after cut): 0 vm pages 0 os pages, 0 bytes
 Source VM (after cut) content: (empty)
 
 Test 4: Cut from end (last 10 characters)
 Cut result: -1
 Dest VM: 0 vm pages 0 os pages, 0 bytes
 Dest VM content: (empty)
-Source VM (after cut): 1 vm pages 7 os pages, 0 bytes
-  Page 0: vm_addr=0, size=56, used=[51,0], retain_count=0
+Source VM (after cut): 0 vm pages 0 os pages, 0 bytes
 Source VM (after cut) content: (empty)
 
 Test 5: Multiple cut operations

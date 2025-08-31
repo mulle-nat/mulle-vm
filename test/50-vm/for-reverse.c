@@ -147,10 +147,10 @@ static void test_mulle_vm_for_reverse_multiple_pages(void)
 
 static void test_mulle_vm_for_reverse_null_vm(void)
 {
-   struct mulle_vm *vm;
-   int count;
-   uintptr_t vm_address;
-   struct mulle_vm_node *node;
+   struct mulle_vm        *vm;
+   int                    count;
+   uintptr_t              vm_address;
+   struct mulle_vm_node   *node;
 
    printf("== Test mulle_vm_mapping_for_reverse with NULL VM ==\n");
    vm = NULL;
@@ -158,7 +158,7 @@ static void test_mulle_vm_for_reverse_null_vm(void)
    // total_pages must be 0 when vm is NULL, so just print index as count for safety
    count = 0;
    vm_address = 0;
-   mulle_vm_tree_for_reverse(vm, node)
+   mulle_vm_tree_for_reverse( NULL, node)
    {
       printf("Page %d: address=%lu, size=%lu, used=[%lu,%lu)\n",
              count,

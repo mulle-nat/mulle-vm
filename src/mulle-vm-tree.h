@@ -73,6 +73,12 @@ struct mulle_vm_node
    size_t                 total;
 };
 
+
+MULLE__VM_GLOBAL
+char  *mulle_vm_node_validate( struct mulle_vm_node *node);
+
+
+
 //
 // Search result structure
 //
@@ -197,6 +203,10 @@ static inline int
 
 
 MULLE__VM_GLOBAL
+char  *mulle_vm_tree_validate( struct mulle_vm_tree *tree);
+
+
+MULLE__VM_GLOBAL
 MULLE_C_NONNULL_FIRST
 int   _mulle_vm_tree_remove( struct mulle_vm_tree *tree, uintptr_t position);
 
@@ -279,6 +289,17 @@ static inline struct mulle_vm_page *
    // The extra data starts at &rbnode->payload
    // So we need to get back to the rbnode from the node
    return( node->page);
+}
+
+
+// Function to get rbnode from vm_node
+static inline struct mulle_vm_page *
+   mulle_vm_node_get_page( struct mulle_vm_node *node)
+{
+   // The rbnode contains the vm_node as extra data
+   // The extra data starts at &rbnode->payload
+   // So we need to get back to the rbnode from the node
+   return( node ? node->page : NULL);
 }
 
 
@@ -421,12 +442,12 @@ static inline void
 }
 
 
-#define mulle_vm_tree_for_reverse( tree_ptr, info)                                                          \
+#define mulle_vm_tree_for_reverse( tree_ptr, node)                                                          \
    for( struct mulle_vm_treereverseenumerator _rover__ ## node = mulle_vm_tree_reverseenumerate( tree_ptr), \
            *_rover__ ## node ## __i = (void *) 0;                                                           \
         ! _rover__ ## node ## __i;                                                                          \
         _rover__ ## node ## __i = ((void *) 1))                                                             \
       for( struct mulle_vm_node *node;                                                                      \
-           mulle_vm_treereverseenumerator_next( &_rover__ ## info, &node); )
+           mulle_vm_treereverseenumerator_next( &_rover__ ## node, &node); )
 
 #endif
