@@ -11,7 +11,7 @@ static void   show_vm( struct mulle_vm *vm)
 
    info        = mulle_vm_get_statistics( vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   printf( "%lu pages, %lu bytes\n", total_pages, info.vm_size);
+   mulle_printf( "%lu pages, %lu bytes\n", total_pages, info.vm_size);
 }
 
 
@@ -26,27 +26,27 @@ static void   dump_vm_content_debug( struct mulle_vm *vm)
    s = mulle_vm_read( vm, mulle_range_make( 0, info.vm_size), buf);
    if( s)
    {
-      printf( "VM content (%zu bytes): \"", info.vm_size);
+      mulle_printf( "VM content (%zu bytes): \"", info.vm_size);
       fwrite( s, 1, info.vm_size, stdout);
-      printf( "\"\n");
+      mulle_printf( "\"\n");
       
-      printf( "Hex dump: ");
+      mulle_printf( "Hex dump: ");
       for( i = 0; i < info.vm_size; i++)
       {
-         printf( "%02x ", ((unsigned char*)s)[i]);
+         mulle_printf( "%02x ", ((unsigned char*)s)[i]);
       }
-      printf( "\n");
+      mulle_printf( "\n");
       
-      printf( "Positions: ");
+      mulle_printf( "Positions: ");
       for( i = 0; i < info.vm_size; i++)
       {
          char c = ((char*)s)[i];
          if( c == '\n')
-            printf( "\\n@%zu ", i);
+            mulle_printf( "\\n@%zu ", i);
          else
-            printf( "%c@%zu ", c, i);
+            mulle_printf( "%c@%zu ", c, i);
       }
-      printf( "\n");
+      mulle_printf( "\n");
    }
 }
 
@@ -60,7 +60,7 @@ static void   test_newline_search_sequential( void)
    size_t            total_length;
    int               line_num;
 
-   printf( "== Test Sequential Newline Search (reproducing mulle-editor issue) ==\n");
+   mulle_printf( "== Test Sequential Newline Search (reproducing mulle-editor issue) ==\n");
    mulle_vm_init( &vm, NULL, NULL);
    
    // Load the exact same data as our test file
@@ -71,31 +71,31 @@ static void   test_newline_search_sequential( void)
    dump_vm_content_debug( &vm);
    
    total_length = mulle_vm_get_length( &vm);
-   printf( "Total length: %zu\n", total_length);
+   mulle_printf( "Total length: %zu\n", total_length);
    
    // Now do the exact same logic as mulle_editor_build_tree
    line_start = 0;
    line_num = 1;
    
-   printf( "\n=== Sequential Search ===\n");
+   mulle_printf( "\n=== Sequential Search ===\n");
    while( line_start < total_length)
    {
       // Search for next newline starting from current position
       search_range = mulle_range_make( line_start, total_length - line_start);
       result = mulle_vm_memchr( &vm, search_range, '\n');
       
-      printf( "Line %d: line_start=%zu, search_range=[%zu,%zu], newline_pos=%zu\n", 
+      mulle_printf( "Line %d: line_start=%zu, search_range=[%zu,%zu], newline_pos=%zu\n", 
              line_num, line_start, search_range.location, search_range.length, result);
       
       if( result == mulle_not_found_e)
       {
-         printf( "  -> Last line without newline, range=[%zu,%zu]\n", 
+         mulle_printf( "  -> Last line without newline, range=[%zu,%zu]\n", 
                 line_start, total_length - line_start);
          break;
       }
       else
       {
-         printf( "  -> Line with newline, range=[%zu,%zu] (includes newline)\n", 
+         mulle_printf( "  -> Line with newline, range=[%zu,%zu] (includes newline)\n", 
                 line_start, result - line_start + 1);
          
          // Move to next line
@@ -104,7 +104,7 @@ static void   test_newline_search_sequential( void)
       }
    }
    
-   printf( "\n");
+   mulle_printf( "\n");
    mulle_vm_done( &vm);
 }
 
@@ -120,13 +120,13 @@ static void   test_newline_from_file( void)
    int               line_num;
    int               load_result;
 
-   printf( "== Test Newline Search from File (like mulle-editor does) ==\n");
+   mulle_printf( "== Test Newline Search from File (like mulle-editor does) ==\n");
    
    // Create test file first
    FILE *f = fopen( "test-newlines.txt", "w");
    if( f)
    {
-      fprintf( f, "Hello World\nSecond Line\n");
+      mulle_fprintf( f, "Hello World\nSecond Line\n");
       fclose( f);
    }
    
@@ -136,7 +136,7 @@ static void   test_newline_from_file( void)
    load_result = mulle_vm_init_with_contents_of_file( &temp_vm, "test-newlines.txt", NULL);
    if( load_result != 0)
    {
-      printf( "Failed to load file: %d\n", load_result);
+      mulle_printf( "Failed to load file: %d\n", load_result);
       mulle_vm_done( &vm);
       return;
    }
@@ -148,31 +148,31 @@ static void   test_newline_from_file( void)
    dump_vm_content_debug( &vm);
    
    total_length = mulle_vm_get_length( &vm);
-   printf( "Total length from file: %zu\n", total_length);
+   mulle_printf( "Total length from file: %zu\n", total_length);
    
    // Now do the exact same logic as mulle_editor_build_tree
    line_start = 0;
    line_num = 1;
    
-   printf( "\n=== Sequential Search from File ===\n");
+   mulle_printf( "\n=== Sequential Search from File ===\n");
    while( line_start < total_length)
    {
       // Search for next newline starting from current position
       search_range = mulle_range_make( line_start, total_length - line_start);
       result = mulle_vm_memchr( &vm, search_range, '\n');
       
-      printf( "Line %d: line_start=%zu, search_range=[%zu,%zu], newline_pos=%zu\n", 
+      mulle_printf( "Line %d: line_start=%zu, search_range=[%zu,%zu], newline_pos=%zu\n", 
              line_num, line_start, search_range.location, search_range.length, result);
       
       if( result == mulle_not_found_e)
       {
-         printf( "  -> Last line without newline, range=[%zu,%zu]\n", 
+         mulle_printf( "  -> Last line without newline, range=[%zu,%zu]\n", 
                 line_start, total_length - line_start);
          break;
       }
       else
       {
-         printf( "  -> Line with newline, range=[%zu,%zu] (includes newline)\n", 
+         mulle_printf( "  -> Line with newline, range=[%zu,%zu] (includes newline)\n", 
                 line_start, result - line_start + 1);
          
          // Move to next line
@@ -184,19 +184,19 @@ static void   test_newline_from_file( void)
    // Clean up
    remove( "test-newlines.txt");
    
-   printf( "\n");
+   mulle_printf( "\n");
    mulle_vm_done( &vm);
 }
 
 
 int   main( void)
 {
-   printf( "Testing newline search with mulle_vm_memchr\n");
-   printf( "==========================================\n\n");
+   mulle_printf( "Testing newline search with mulle_vm_memchr\n");
+   mulle_printf( "==========================================\n\n");
 
    test_newline_search_sequential();
    test_newline_from_file();
 
-   printf( "Debug tests completed.\n");
+   mulle_printf( "Debug tests completed.\n");
    return( 0);
 }

@@ -7,8 +7,8 @@ int   main( void)
    struct mulle_vm   vm;
 
    mulle_vm_init( &vm, NULL, NULL);
-   printf( "create\n");
-   printf( "destroy\n");
+   mulle_printf( "create\n");
+   mulle_printf( "destroy\n");
    mulle_vm_done( &vm);
 
    return( 0);

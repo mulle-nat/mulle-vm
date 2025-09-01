@@ -19,13 +19,13 @@ void test_functions(size_t pagesize, size_t page_size, size_t used_location, siz
    size_t first = mulle_vm_page_get_used_length_first_ospage( &page, pagesize);
    size_t last = mulle_vm_page_get_used_length_last_ospage( &page, pagesize);
    
-   printf("page_size=%zu, used_location=%zu, used_length=%zu\n", page_size, used_location, used_length);
-   printf("first_ospage=%zu, last_ospage=%zu, total_used=%zu\n", 
+   mulle_printf("page_size=%zu, used_location=%zu, used_length=%zu\n", page_size, used_location, used_length);
+   mulle_printf("first_ospage=%zu, last_ospage=%zu, total_used=%zu\n", 
           first, last, page.used.length);
    
    int valid = (first + last) <= page.used.length;
-   printf("valid: %s\n", valid ? "YES" : "NO");
-   printf("\n");
+   mulle_printf("valid: %s\n", valid ? "YES" : "NO");
+   mulle_printf("\n");
 }
 
 
@@ -44,8 +44,8 @@ int main(void)
 {
    size_t pagesize = 8;
    
-   printf("=== New Functions Test ===\n");
-   printf("pagesize = %zu\n\n", pagesize);
+   mulle_printf("=== New Functions Test ===\n");
+   mulle_printf("pagesize = %zu\n\n", pagesize);
    
    // Test cases
    test_functions(pagesize, 8, 0, 8);     // Full page

@@ -11,7 +11,7 @@ static void   show_vm( struct mulle_vm *vm)
 
    statistics  = mulle_vm_get_statistics( vm);
    total_pages = statistics.page_size / mulle_vm_get_pagesize();
-   printf( "%lu pages, %lu bytes\n", total_pages, statistics.vm_size);
+   mulle_printf( "%lu pages, %lu bytes\n", total_pages, statistics.vm_size);
 }
 
 
@@ -30,12 +30,12 @@ static void   dump_vm( struct mulle_vm *vm)
    s = mulle_vm_read( vm, mulle_range_make( 0, statistics.vm_size), buf);
    if( s)
       fwrite( s, 1, statistics.vm_size, stdout);
-   printf( "\n");
+   mulle_printf( "\n");
 
 
-   printf( "VM:\n");
+   mulle_printf( "VM:\n");
    fflush( stdout);
-   fprintf( stderr, "adr-end (size-[fhole,ehole])\n");
+   mulle_fprintf( stderr, "adr-end (size-[fhole,ehole])\n");
 
    i = 0;
    vm_address = 0;
@@ -46,9 +46,9 @@ static void   dump_vm( struct mulle_vm *vm)
 
       // output vm range, size of pages, and hole in front and back
       fflush( stdout);
-      fprintf( stderr, "@%p: ", page);
+      mulle_fprintf( stderr, "@%p: ", page);
 
-      printf( "\t%2td-%-2td (%td-[%td,%td])\n",
+      mulle_printf( "\t%2td-%-2td (%td-[%td,%td])\n",
          vm_address,
          vm_address + page->used.length,
          page->size,
@@ -56,7 +56,7 @@ static void   dump_vm( struct mulle_vm *vm)
          page->size - mulle_range_get_max( page->used));
       vm_address += page->used.length;
    }
-   printf( "\n");
+   mulle_printf( "\n");
 }
 
 
@@ -66,29 +66,29 @@ int   main( void)
    struct mulle_vm_statistics   info;
 
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
-   printf( "== after init ==\n");
+   mulle_printf( "== after init ==\n");
    show_vm( &vm);
 
    // build from 0
-   printf( "\n== build from 0 ==\n");
+   mulle_printf( "\n== build from 0 ==\n");
    mulle_vm_insert( &vm, mulle_range_make( 0, 12), "abcdefghijkl");
    show_vm( &vm);
    dump_vm( &vm);
 
    // insert in the middle
-   printf( "== insert in the middle ==\n");
+   mulle_printf( "== insert in the middle ==\n");
    mulle_vm_insert( &vm, mulle_range_make( 6, 4), "ZZZZ");
    show_vm( &vm);
    dump_vm( &vm);
 
    // insert before
-   printf( "== insert before ==\n");
+   mulle_printf( "== insert before ==\n");
    mulle_vm_insert( &vm, mulle_range_make( 0, 4), "XXXX");
    show_vm( &vm);
    dump_vm( &vm);
 
    // insert after
-   printf( "== insert after ==\n");
+   mulle_printf( "== insert after ==\n");
    info = mulle_vm_get_statistics( &vm);
    mulle_vm_insert( &vm, mulle_range_make( info.vm_size, 4), "YYYY");
    show_vm( &vm);

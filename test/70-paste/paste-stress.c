@@ -19,7 +19,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
 
    info = mulle_vm_get_statistics(vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   printf("%s: %lu vm pages %lu os pages, %lu bytes\n", name,
+   mulle_printf("%s: %lu vm pages %lu os pages, %lu bytes\n", name,
           (long) _mulle__rbtree_get_count( (struct mulle__rbtree *) &vm->tree), total_pages, info.vm_size);
    
    // Show detailed page information
@@ -29,7 +29,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
    mulle_vm_tree_for( &vm->tree, node)
    {
       page = node->page;
-      printf("  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
+      mulle_printf("  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
              i, vm_address, page->size, page->used.location, page->used.length,
              (intptr_t) _mulle_atomic_pointer_read_nonatomic( &page->retain_count));
       vm_address += page->used.length;
@@ -47,7 +47,7 @@ static void dump_vm_content(struct mulle_vm *vm, const char *name)
 
    info = mulle_vm_get_statistics(vm);
    if (info.vm_size == 0) {
-      printf("%s content: (empty)\n", name);
+      mulle_printf("%s content: (empty)\n", name);
       return;
    }
 
@@ -55,15 +55,15 @@ static void dump_vm_content(struct mulle_vm *vm, const char *name)
    preview_size = info.vm_size > 100 ? 100 : info.vm_size;
    s = mulle_vm_read(vm, mulle_range_make(0, preview_size), buffer);
    if (s) {
-      printf("%s content preview: ", name);
+      mulle_printf("%s content preview: ", name);
       fwrite(s, 1, preview_size, stdout);
       if (info.vm_size > 100) {
-         printf("... (total length: %lu)\n", info.vm_size);
+         mulle_printf("... (total length: %lu)\n", info.vm_size);
       } else {
-         printf(" (length: %lu)\n", info.vm_size);
+         mulle_printf(" (length: %lu)\n", info.vm_size);
       }
    } else {
-      printf("%s content: (read failed)\n", name);
+      mulle_printf("%s content: (read failed)\n", name);
    }
 }
 
@@ -75,7 +75,7 @@ int main(void)
    size_t data_size = strlen(test_data);
    int result;
 
-   printf("=== VM Paste Stress Test ===\n\n");
+   mulle_printf("=== VM Paste Stress Test ===\n\n");
 
    mulle_vm_debug_no_check_config          = mulle_vm_debug_config;
    mulle_vm_debug_no_check_config.shutdown = 0;
@@ -84,7 +84,7 @@ int main(void)
    mulle_vm_init(&src_vm, &mulle_vm_debug_config, NULL);
    mulle_vm_init(&dst_vm, &mulle_vm_debug_no_check_config, NULL);
 
-   printf("Initial state:\n");
+   mulle_printf("Initial state:\n");
 
    // Add test data to source VM
    mulle_vm_insert(&src_vm, mulle_range_make(0, data_size), test_data);
@@ -93,45 +93,45 @@ int main(void)
    dump_vm_content(&src_vm, "Source VM");
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
-   printf("\n");
+   mulle_printf("\n");
 
 #ifdef TEST_1
    // First paste operation - paste entire source at beginning
-   printf("Test 1: First paste operation (paste at beginning)\n");
+   mulle_printf("Test 1: First paste operation (paste at beginning)\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(0, 0), &src_vm);
-   printf("Paste result: %d\n", result);
+   mulle_printf("Paste result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM after first paste");
    dump_vm_content(&dst_vm, "Dest VM after first paste");
-   printf("\n");
+   mulle_printf("\n");
 #endif
 
 #ifdef TEST_2
    // Second paste operation - paste source at end (append)
-   printf("Test 2: Second paste operation (paste at end - append)\n");
+   mulle_printf("Test 2: Second paste operation (paste at end - append)\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(data_size, 0), &src_vm);
-   printf("Paste result: %d\n", result);
+   mulle_printf("Paste result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM after second paste");
    dump_vm_content(&dst_vm, "Dest VM after second paste");
-   printf("\n");
+   mulle_printf("\n");
 #endif
 
 #ifdef TEST_3
    // Third paste operation - paste source in the middle (replace some content)
-   printf("Test 3: Third paste operation (paste in middle - replace)\n");
+   mulle_printf("Test 3: Third paste operation (paste in middle - replace)\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(data_size / 2, data_size / 4), &src_vm);
-   printf("Paste result: %d\n", result);
+   mulle_printf("Paste result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM after third paste");
    dump_vm_content(&dst_vm, "Dest VM after third paste");
-   printf("\n");
+   mulle_printf("\n");
 #endif
 
    // Verify source VM is unchanged
-   printf("Verify source VM unchanged:\n");
+   mulle_printf("Verify source VM unchanged:\n");
    show_vm_info(&src_vm, "Source VM");
    dump_vm_content(&src_vm, "Source VM");
-   printf("\n");
+   mulle_printf("\n");
 
-   printf("=== Paste Stress Test Complete ===\n");
+   mulle_printf("=== Paste Stress Test Complete ===\n");
 
    // Cleanup
    mulle_vm_done(&dst_vm);

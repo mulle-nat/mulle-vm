@@ -16,7 +16,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
 
    info = mulle_vm_get_statistics(vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   printf("%s: %lu vm pages %lu os pages, %lu bytes\n", name,
+   mulle_printf("%s: %lu vm pages %lu os pages, %lu bytes\n", name,
           (long) _mulle__rbtree_get_count( (struct mulle__rbtree *) &vm->tree), total_pages, info.vm_size);
    
    // Show detailed page information
@@ -26,7 +26,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
    mulle_vm_tree_for( &vm->tree, node)
    {
       page = node->page;
-      printf("  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
+      mulle_printf("  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
              i, vm_address, page->size, page->used.location, page->used.length,
              (intptr_t) _mulle_atomic_pointer_read_nonatomic( &page->retain_count));
       vm_address += page->used.length;
@@ -43,16 +43,16 @@ static void dump_vm_content(struct mulle_vm *vm, const char *name)
 
    info = mulle_vm_get_statistics(vm);
    if (info.vm_size == 0) {
-      printf("%s content: (empty)\n", name);
+      mulle_printf("%s content: (empty)\n", name);
       return;
    }
 
    s = mulle_vm_read(vm, mulle_range_make(0, info.vm_size), buffer);
    if (s) {
       fwrite(s, 1, info.vm_size, stdout);
-      printf(" (length: %lu)\n", info.vm_size);
+      mulle_printf(" (length: %lu)\n", info.vm_size);
    } else {
-      printf("%s content: (read failed)\n", name);
+      mulle_printf("%s content: (read failed)\n", name);
    }
 }
 
@@ -65,7 +65,7 @@ int main(void)
    char src_data[] = "INSERTED TEXT";
    int result;
 
-   printf("=== VM Paste Test ===\n\n");
+   mulle_printf("=== VM Paste Test ===\n\n");
 
    mulle_vm_debug_no_check_config          = mulle_vm_debug_config;
    mulle_vm_debug_no_check_config.shutdown = 0;
@@ -74,7 +74,7 @@ int main(void)
    mulle_vm_init(&src_vm, &mulle_vm_debug_config, NULL);
    mulle_vm_init(&dst_vm, &mulle_vm_debug_no_check_config, NULL);
 
-   printf("Initial state:\n");
+   mulle_printf("Initial state:\n");
 
    // Add test data to both VMs
    mulle_vm_insert(&dst_vm, mulle_range_make(0, strlen(dst_data)), dst_data);
@@ -84,18 +84,18 @@ int main(void)
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM");
    dump_vm_content(&src_vm, "Source VM");
-   printf("\n");
+   mulle_printf("\n");
 
 #ifdef TEST_BEGINNING
    // Test 1: Paste at beginning (replace first 3 characters)
-   printf("Test 1: Paste at beginning (replace 'The' with source data)\n");
+   mulle_printf("Test 1: Paste at beginning (replace 'The' with source data)\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(0, 3), &src_vm);
-   printf("Paste result: %d\n", result);
+   mulle_printf("Paste result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (should be unchanged)");
    dump_vm_content(&src_vm, "Source VM (should be unchanged)");
-   printf("\n");
+   mulle_printf("\n");
 
    // Reset destination VM for next test
    mulle_vm_reset(&dst_vm);
@@ -104,14 +104,14 @@ int main(void)
 
 #ifdef TEST_MIDDLE
    // Test 2: Paste in middle (replace 'brown fox' with source data)
-   printf("Test 2: Paste in middle (replace 'brown fox' with source data)\n");
+   mulle_printf("Test 2: Paste in middle (replace 'brown fox' with source data)\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(10, 9), &src_vm);
-   printf("Paste result: %d\n", result);
+   mulle_printf("Paste result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (should be unchanged)");
    dump_vm_content(&src_vm, "Source VM (should be unchanged)");
-   printf("\n");
+   mulle_printf("\n");
 
    // Reset destination VM for next test
    mulle_vm_reset(&dst_vm);
@@ -120,14 +120,14 @@ int main(void)
 
 #ifdef TEST_END
    // Test 3: Paste at end (replace 'dog.' with source data)
-   printf("Test 3: Paste at end (replace 'dog.' with source data)\n");
+   mulle_printf("Test 3: Paste at end (replace 'dog.' with source data)\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(40, 4), &src_vm);
-   printf("Paste result: %d\n", result);
+   mulle_printf("Paste result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (should be unchanged)");
    dump_vm_content(&src_vm, "Source VM (should be unchanged)");
-   printf("\n");
+   mulle_printf("\n");
 
    // Reset destination VM for next test
    mulle_vm_reset(&dst_vm);
@@ -136,14 +136,14 @@ int main(void)
 
 #ifdef TEST_INSERT
    // Test 4: Insert without replacement (zero-length range in middle)
-   printf("Test 4: Insert without replacement (zero-length range after 'quick')\n");
+   mulle_printf("Test 4: Insert without replacement (zero-length range after 'quick')\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(9, 0), &src_vm);
-   printf("Paste result: %d\n", result);
+   mulle_printf("Paste result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (should be unchanged)");
    dump_vm_content(&src_vm, "Source VM (should be unchanged)");
-   printf("\n");
+   mulle_printf("\n");
 
    // Reset destination VM for next test
    mulle_vm_reset(&dst_vm);
@@ -152,14 +152,14 @@ int main(void)
 
 #ifdef TEST_REPLACE
    // Test 5: Replace entire content
-   printf("Test 5: Replace entire content with source data\n");
+   mulle_printf("Test 5: Replace entire content with source data\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make_all(), &src_vm);
-   printf("Paste result: %d\n", result);
+   mulle_printf("Paste result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (should be unchanged)");
    dump_vm_content(&src_vm, "Source VM (should be unchanged)");
-   printf("\n");
+   mulle_printf("\n");
 
    // Reset destination VM for next test
    mulle_vm_reset(&dst_vm);
@@ -168,30 +168,30 @@ int main(void)
 
 #ifdef TEST_BUG_DEMO
    // Test: Insert without replacement (zero-length range)
-   printf("Test: Insert without replacement (zero-length range after 'quick')\n");
+   mulle_printf("Test: Insert without replacement (zero-length range after 'quick')\n");
    result = mulle_vm_paste(&dst_vm, mulle_range_make(9, 0), &src_vm);
-   printf("Paste result: %d\n", result);
+   mulle_printf("Paste result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (should be unchanged)");
    dump_vm_content(&src_vm, "Source VM (should be unchanged)");
-   printf("\n");
+   mulle_printf("\n");
 #endif
 
 #ifdef TEST_EMPTY_SRC
    // Test 6: Paste with empty source (should just delete the range)
-   printf("Test 6: Paste with empty source (should delete 'brown fox')\n");
+   mulle_printf("Test 6: Paste with empty source (should delete 'brown fox')\n");
    mulle_vm_reset(&src_vm);  // Make source empty
    result = mulle_vm_paste(&dst_vm, mulle_range_make(10, 9), &src_vm);
-   printf("Paste result: %d\n", result);
+   mulle_printf("Paste result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (empty)");
    dump_vm_content(&src_vm, "Source VM (empty)");
-   printf("\n");
+   mulle_printf("\n");
 #endif
 
-   printf("=== Paste Test Complete ===\n");
+   mulle_printf("=== Paste Test Complete ===\n");
 
    // Cleanup
    mulle_vm_done(&dst_vm);

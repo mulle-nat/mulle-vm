@@ -14,11 +14,11 @@ int main(void)
    struct mulle_vm   vm;
    size_t            pagesize = mulle_vm_get_pagesize();
    
-   printf("=== Corrected Occupation Test ===\n");
-   printf("pagesize = %zu\n", pagesize);
+   mulle_printf("=== Corrected Occupation Test ===\n");
+   mulle_printf("pagesize = %zu\n", pagesize);
    
    // Test the exact case: page.used.location = 1, page.size = pagesize, page.used.length = pagesize - 2
-   printf("\n=== Edge Case Test ===\n");
+   mulle_printf("\n=== Edge Case Test ===\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    // Create the problematic scenario
@@ -28,16 +28,16 @@ int main(void)
    
    // Now we have: used.location = 1, used.length = pagesize - 2
    
-   printf("Before deletion: ");
+   mulle_printf("Before deletion: ");
    struct mulle_vm_statistics stats = mulle_vm_get_statistics( &vm);
-   printf("%lu pages, %lu bytes\n", stats.page_size / pagesize, stats.vm_size);
+   mulle_printf("%lu pages, %lu bytes\n", stats.page_size / pagesize, stats.vm_size);
    
    // This should trigger the corrected calculation
    mulle_vm_delete( &vm, mulle_range_make( 1, 2));
    
-   printf("After deletion: ");
+   mulle_printf("After deletion: ");
    stats = mulle_vm_get_statistics( &vm);
-   printf("%lu pages, %lu bytes\n", stats.page_size / pagesize, stats.vm_size);
+   mulle_printf("%lu pages, %lu bytes\n", stats.page_size / pagesize, stats.vm_size);
    
    mulle_vm_done( &vm);
    

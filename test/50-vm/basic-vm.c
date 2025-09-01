@@ -13,18 +13,18 @@ int   main( void)
 {
    struct mulle_vm   vm;
    
-   printf( "mulle-vm Basic Tests\n");
-   printf( "==================\n");
+   mulle_printf( "mulle-vm Basic Tests\n");
+   mulle_printf( "==================\n");
    
    // Test 1: VM init/done
-   printf( "Test 1: VM init/done\n");
+   mulle_printf( "Test 1: VM init/done\n");
    mulle_vm_init( &vm, NULL, NULL);
-   printf( "VM initialized successfully\n");
+   mulle_printf( "VM initialized successfully\n");
    
    mulle_vm_done( &vm);
-   printf( "VM destroyed successfully\n");
+   mulle_printf( "VM destroyed successfully\n");
    
-   printf( "\nAll basic tests completed!\n");
+   mulle_printf( "\nAll basic tests completed!\n");
    
    return( 0);
 }

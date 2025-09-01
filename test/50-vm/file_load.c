@@ -11,11 +11,11 @@ int main(void)
    struct mulle_vm_statistics stats;
    char              buf[1024];
    
-   printf("=== Load file into VM1, print content ===\n");
+   mulle_printf("=== Load file into VM1, print content ===\n");
    
    // Load file contents into VM1
    if (mulle_vm_init_with_contents_of_file(&vm1, "test_data.txt", NULL) != 0) {
-      printf("ERROR: Failed to load file into VM\n");
+      mulle_printf("ERROR: Failed to load file into VM\n");
       return 1;
    }
    
@@ -23,11 +23,11 @@ int main(void)
    stats = mulle_vm_get_statistics(&vm1);
    data = mulle_vm_read(&vm1, mulle_range_make(0, stats.vm_size), buf);
    if (data) {
-      printf("VM1 content: ");
+      mulle_printf("VM1 content: ");
       fwrite(data, 1, stats.vm_size, stdout);
    }
    
-   printf("\n=== Transfer to VM2, print content ===\n");
+   mulle_printf("\n=== Transfer to VM2, print content ===\n");
    
    // Initialize second VM
    mulle_vm_init(&vm2, NULL, NULL);
@@ -41,7 +41,7 @@ int main(void)
    struct mulle_vm_statistics stats2 = mulle_vm_get_statistics(&vm2);
    data = mulle_vm_read(&vm2, mulle_range_make(0, stats2.vm_size), buf);
    if (data) {
-      printf("VM2 content: ");
+      mulle_printf("VM2 content: ");
       fwrite(data, 1, stats2.vm_size, stdout);
    }
    
@@ -49,6 +49,6 @@ int main(void)
    mulle_vm_done(&vm1);
    mulle_vm_done(&vm2);
    
-   printf("Test completed!\n");
+   mulle_printf("Test completed!\n");
    return 0;
 }

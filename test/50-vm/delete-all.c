@@ -11,7 +11,7 @@ static void   show_vm( struct mulle_vm *vm)
 
    statistics  = mulle_vm_get_statistics( vm);
    total_pages = statistics.page_size / mulle_vm_get_pagesize();
-   printf( "%lu pages, %lu bytes\n", total_pages, statistics.vm_size);
+   mulle_printf( "%lu pages, %lu bytes\n", total_pages, statistics.vm_size);
 }
 
 
@@ -30,12 +30,12 @@ static void   dump_vm( struct mulle_vm *vm)
    s = mulle_vm_read( vm, mulle_range_make( 0, statistics.vm_size), buf);
    if( s)
       fwrite( s, 1, statistics.vm_size, stdout);
-   printf( "\n");
+   mulle_printf( "\n");
 
 
-   printf( "VM:\n");
+   mulle_printf( "VM:\n");
    fflush( stdout);
-   fprintf( stderr, "adr-end (size-[fhole,ehole])\n");
+   mulle_fprintf( stderr, "adr-end (size-[fhole,ehole])\n");
 
    i = 0;
    mulle_vm_tree_for( &vm->tree, node)
@@ -45,9 +45,9 @@ static void   dump_vm( struct mulle_vm *vm)
 
       // output vm range, size of pages, and hole in front and back
       fflush( stdout);
-      fprintf( stderr, "@%p: ", page);
+      mulle_fprintf( stderr, "@%p: ", page);
 
-      printf( "\t%2td-%-2td (%td-[%td,%td])\n",
+      mulle_printf( "\t%2td-%-2td (%td-[%td,%td])\n",
          vm_address,
          vm_address + page->used.length,
          page->size,
@@ -56,7 +56,7 @@ static void   dump_vm( struct mulle_vm *vm)
 
       vm_address += page->used.length;
    }
-   printf( "\n");
+   mulle_printf( "\n");
 }
 
 
@@ -78,7 +78,7 @@ static void  test_with_range( uintptr_t location, uintptr_t length)
    mulle_vm_append( &vm, "uvw", 3);
    mulle_vm_append( &vm, "xyz", 3);
 
-   printf( "== delete {%td, %td} ==\n", range.location, range.length);
+   mulle_printf( "== delete {%td, %td} ==\n", range.location, range.length);
    mulle_vm_delete( &vm, range);
    show_vm( &vm);
    dump_vm( &vm);

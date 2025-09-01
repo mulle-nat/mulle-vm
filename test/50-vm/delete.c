@@ -11,7 +11,7 @@ static void   show_vm( struct mulle_vm *vm)
 
    statistics  = mulle_vm_get_statistics( vm);
    total_pages = statistics.page_size / mulle_vm_get_pagesize();
-   printf( "%lu pages, %lu bytes\n", total_pages, statistics.vm_size);
+   mulle_printf( "%lu pages, %lu bytes\n", total_pages, statistics.vm_size);
 }
 
 
@@ -30,12 +30,12 @@ static void   dump_vm( struct mulle_vm *vm)
    s = mulle_vm_read( vm, mulle_range_make( 0, statistics.vm_size), buf);
    if( s)
       fwrite( s, 1, statistics.vm_size, stdout);
-   printf( "\n");
+   mulle_printf( "\n");
 
 
-   printf( "VM:\n");
+   mulle_printf( "VM:\n");
    fflush( stdout);
-   fprintf( stderr, "adr-end (size-[fhole,ehole])\n");
+   mulle_fprintf( stderr, "adr-end (size-[fhole,ehole])\n");
 
    i = 0;
    vm_address = 0;
@@ -46,9 +46,9 @@ static void   dump_vm( struct mulle_vm *vm)
 
       // output vm range, size of pages, and hole in front and back
       fflush( stdout);
-      fprintf( stderr, "@%p: ", page);
+      mulle_fprintf( stderr, "@%p: ", page);
 
-      printf( "\t%2td-%-2td (%td-[%td,%td])\n",
+      mulle_printf( "\t%2td-%-2td (%td-[%td,%td])\n",
          vm_address,
          vm_address + page->used.length,
          page->size,
@@ -57,7 +57,7 @@ static void   dump_vm( struct mulle_vm *vm)
 
       vm_address += page->used.length;
    }
-   printf( "\n");
+   mulle_printf( "\n");
 }
 
 
@@ -69,11 +69,11 @@ int   main( void)
    struct mulle_vm_statistics   info;
 
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
-   printf( "== after init ==\n");
+   mulle_printf( "== after init ==\n");
    show_vm( &vm);
 
    // build from 0
-   printf( "\n== build from 0 ==\n");
+   mulle_printf( "\n== build from 0 ==\n");
    // create multiple pages
    mulle_vm_append( &vm, "abcd", 4);
    mulle_vm_append( &vm, "efgh", 4);
@@ -86,24 +86,24 @@ int   main( void)
    dump_vm( &vm);
 
    // insert in the middle
-   printf( "== delete 'f' in the middle ==\n");
+   mulle_printf( "== delete 'f' in the middle ==\n");
    mulle_vm_delete( &vm, mulle_range_make( 5, 1));
    show_vm( &vm);
    dump_vm( &vm);
 
    // delete 'a' in front
-   printf( "== delete 'a' in front ==\n");
+   mulle_printf( "== delete 'a' in front ==\n");
    mulle_vm_delete( &vm, mulle_range_make( 0, 1));
    show_vm( &vm);
    dump_vm( &vm);
 
-   printf( "== delete 'z' in back ==\n");
+   mulle_printf( "== delete 'z' in back ==\n");
    info = mulle_vm_get_statistics( &vm);
    mulle_vm_delete( &vm, mulle_range_make( info.vm_size - 1, 1));
    show_vm( &vm);
    dump_vm( &vm);
 
-   printf( "== delete { 2, 12} (more than a page size) ==\n");
+   mulle_printf( "== delete { 2, 12} (more than a page size) ==\n");
    mulle_vm_delete( &vm, mulle_range_make( 2, 8 + 2 + 2));
    show_vm( &vm);
    dump_vm( &vm);

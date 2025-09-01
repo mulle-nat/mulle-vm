@@ -20,7 +20,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
 
    info = mulle_vm_get_statistics(vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   printf("%s: %lu vm pages %lu os pages, %lu bytes\n", name,
+   mulle_printf("%s: %lu vm pages %lu os pages, %lu bytes\n", name,
           (long) _mulle__rbtree_get_count( (struct mulle__rbtree *) &vm->tree), total_pages, info.vm_size);
    
    // Show detailed page information
@@ -30,7 +30,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
    mulle_vm_tree_for( &vm->tree, node)
    {
       page = node->page;
-      printf("  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
+      mulle_printf("  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
              i, vm_address, page->size, page->used.location, page->used.length,
              (intptr_t) _mulle_atomic_pointer_read_nonatomic( &page->retain_count));
       vm_address += page->used.length;
@@ -47,16 +47,16 @@ static void dump_vm_content(struct mulle_vm *vm, const char *name)
 
    info = mulle_vm_get_statistics(vm);
    if (info.vm_size == 0) {
-      printf("%s content: (empty)\n", name);
+      mulle_printf("%s content: (empty)\n", name);
       return;
    }
 
    s = mulle_vm_read(vm, mulle_range_make(0, info.vm_size), buffer);
    if (s) {
       fwrite(s, 1, info.vm_size, stdout);
-      printf(" (length: %lu)\n", info.vm_size);
+      mulle_printf(" (length: %lu)\n", info.vm_size);
    } else {
-      printf("%s content: (read failed)\n", name);
+      mulle_printf("%s content: (read failed)\n", name);
    }
 }
 
@@ -68,7 +68,7 @@ int main(void)
    char test_data[] = "Hello World! This is test data for cut operations.";
    int result;
 
-   printf("=== VM Cut Test ===\n\n");
+   mulle_printf("=== VM Cut Test ===\n\n");
 
    mulle_vm_debug_no_check_config          = mulle_vm_debug_config;
    mulle_vm_debug_no_check_config.shutdown = 0;
@@ -77,7 +77,7 @@ int main(void)
    mulle_vm_init(&src_vm, &mulle_vm_debug_config, NULL);
    mulle_vm_init(&dst_vm, &mulle_vm_debug_no_check_config, NULL);
 
-   printf("Initial state:\n");
+   mulle_printf("Initial state:\n");
 
    // Add test data to source VM using insert
    mulle_vm_insert(&src_vm, mulle_range_make(0, strlen(test_data)), test_data);
@@ -85,18 +85,18 @@ int main(void)
    show_vm_info(&src_vm, "Source VM");
    dump_vm_content(&src_vm, "Source VM");
    show_vm_info(&dst_vm, "Dest VM");
-   printf("\n");
+   mulle_printf("\n");
 
 #ifdef TEST_FIRST
    // Test 1: Cut first 5 characters
-   printf("Test 1: Cut first 5 characters (0-5)\n");
+   mulle_printf("Test 1: Cut first 5 characters (0-5)\n");
    result = mulle_vm_cut(&dst_vm, &src_vm, mulle_range_make(0, 5));
-   printf("Cut result: %d\n", result);
+   mulle_printf("Cut result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (after cut)");
    dump_vm_content(&src_vm, "Source VM (after cut)");
-   printf("\n");
+   mulle_printf("\n");
 
    // Reset VMs for next test
    mulle_vm_reset(&dst_vm);
@@ -106,14 +106,14 @@ int main(void)
 
 #ifdef TEST_MIDDLE
    // Test 2: Cut middle section (6-11, "World!")
-   printf("Test 2: Cut middle section (6-11)\n");
+   mulle_printf("Test 2: Cut middle section (6-11)\n");
    result = mulle_vm_cut(&dst_vm, &src_vm, mulle_range_make(6, 6));
-   printf("Cut result: %d\n", result);
+   mulle_printf("Cut result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (after cut)");
    dump_vm_content(&src_vm, "Source VM (after cut)");
-   printf("\n");
+   mulle_printf("\n");
 
    // Reset VMs for next test
    mulle_vm_reset(&dst_vm);
@@ -123,42 +123,42 @@ int main(void)
 
 #ifdef TEST_ENTIRE
    // Test 3: Cut entire content
-   printf("Test 3: Cut entire content\n");
+   mulle_printf("Test 3: Cut entire content\n");
    result = mulle_vm_cut(&dst_vm, &src_vm, mulle_range_make_all());
-   printf("Cut result: %d\n", result);
+   mulle_printf("Cut result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (after cut)");
    dump_vm_content(&src_vm, "Source VM (after cut)");
-   printf("\n");
+   mulle_printf("\n");
 #endif
 
 #ifdef TEST_END
    // Test 4: Cut from end of string (last 10 characters)
-   printf("Test 4: Cut from end (last 10 characters)\n");
+   mulle_printf("Test 4: Cut from end (last 10 characters)\n");
    mulle_vm_done(&dst_vm);
    mulle_vm_init(&dst_vm, &mulle_vm_debug_no_check_config, NULL);
    
    size_t src_len = strlen(test_data);
    result = mulle_vm_cut(&dst_vm, &src_vm, mulle_range_make(src_len - 10, 10));
-   printf("Cut result: %d\n", result);
+   mulle_printf("Cut result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM (after cut)");
    dump_vm_content(&src_vm, "Source VM (after cut)");
-   printf("\n");
+   mulle_printf("\n");
 #endif
 
 #ifdef TEST_MULTIPLE
    // Test 5: Multiple cut operations
-   printf("Test 5: Multiple cut operations\n");
+   mulle_printf("Test 5: Multiple cut operations\n");
    mulle_vm_reset(&dst_vm);
    mulle_vm_reset(&src_vm);
    mulle_vm_insert(&src_vm, mulle_range_make(0, strlen(test_data)), test_data);
    
    // Cut "Hello"
    result = mulle_vm_cut(&dst_vm, &src_vm, mulle_range_make(0, 5));
-   printf("First cut result: %d\n", result);
+   mulle_printf("First cut result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM after first cut");
    dump_vm_content(&dst_vm, "Dest VM after first cut");
    show_vm_info(&src_vm, "Source VM after first cut");
@@ -166,29 +166,29 @@ int main(void)
    
    // Cut " World!" (now at position 0 since we cut "Hello")
    result = mulle_vm_cut(&dst_vm, &src_vm, mulle_range_make(0, 7));
-   printf("Second cut result: %d\n", result);
+   mulle_printf("Second cut result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM after second cut");
    dump_vm_content(&dst_vm, "Dest VM after second cut");
    show_vm_info(&src_vm, "Source VM after second cut");
    dump_vm_content(&src_vm, "Source VM after second cut");
-   printf("\n");
+   mulle_printf("\n");
 #endif
 
 #ifdef TEST_INVALID
    // Test 6: Cut with invalid range (should fail gracefully)
-   printf("Test 6: Cut with invalid range (beyond source)\n");
+   mulle_printf("Test 6: Cut with invalid range (beyond source)\n");
    mulle_vm_reset(&dst_vm);
    mulle_vm_reset(&src_vm);
    mulle_vm_insert(&src_vm, mulle_range_make(0, strlen(test_data)), test_data);
    
    result = mulle_vm_cut(&dst_vm, &src_vm, mulle_range_make(0, strlen(test_data) + 100));
-   printf("Cut result (should fail): %d\n", result);
+   mulle_printf("Cut result (should fail): %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    show_vm_info(&src_vm, "Source VM");
-   printf("\n");
+   mulle_printf("\n");
 #endif
 
-   printf("=== Cut Test Complete ===\n");
+   mulle_printf("=== Cut Test Complete ===\n");
 
    // Cleanup
    mulle_vm_done(&dst_vm);

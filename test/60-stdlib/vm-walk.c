@@ -12,7 +12,7 @@ static int   walk_callback( struct mulle_data data,
                             struct mulle_range range,
                             void *context)
 {
-   printf( "walk: {%td, %td} -> '%.*s'\n",
+   mulle_printf( "walk: {%td, %td} -> '%.*s'\n",
                range.location, range.location + range.length,
                (int) data.length, (char *) data.bytes);
 
@@ -24,26 +24,26 @@ static void   walk( struct mulle_vm  *vm, struct mulle_range range)
 {
    int   rval;
 
-   printf( "Walking VM from %td to %td...\n",
+   mulle_printf( "Walking VM from %td to %td...\n",
                range.location,
                mulle_range_get_last_location( range));
 
    rval = mulle_vm_walk( vm, range, walk_callback, NULL );
    if( rval >= 0)
-      printf( "=== Walk completed successfully ===\n");
+      mulle_printf( "=== Walk completed successfully ===\n");
 }
 
 static void   walk_reverse( struct mulle_vm  *vm, struct mulle_range range)
 {
    int   rval;
 
-   printf( "Walking VM from %td to %td...\n",
+   mulle_printf( "Walking VM from %td to %td...\n",
                mulle_range_get_last_location( range),
                range.location);
 
    rval = mulle_vm_walk_reverse( vm, range, walk_callback, NULL );
    if( rval >= 0)
-      printf( "=== Walk completed successfully ===\n");
+      mulle_printf( "=== Walk completed successfully ===\n");
 }
 
 
@@ -55,7 +55,7 @@ static void   test_with_walk( void)
    struct mulle_vm_statistics   info;
    struct mulle_range           range;
 
-   printf( "=== Testing mulle_vm_walk ===\n");
+   mulle_printf( "=== Testing mulle_vm_walk ===\n");
 
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
 

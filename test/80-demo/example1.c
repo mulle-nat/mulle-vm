@@ -12,7 +12,7 @@ static void   mulle_vm_print( struct mulle_vm *vm)
    mulle_alloca_do( buf, char, length)
    {
       s = mulle_vm_read( vm, mulle_range_make( 0, length), buf);
-      printf( "\"%.*s\"\n", (int) length, s);
+      mulle_printf( "\"%.*s\"\n", (int) length, s);
    }
 }
 
@@ -27,22 +27,22 @@ int main(void)
    mulle_vm_init( &vm, NULL, NULL);
    {
       mulle_vm_insert( &vm, mulle_range_make( 0, strlen( text)), text);
-      printf( "a:1)\n");
+      mulle_printf( "a:1)\n");
       mulle_vm_print( &vm);
 
       mulle_vm_init( &copy, NULL, NULL);
       {
          mulle_vm_copy( &copy, &vm, mulle_range_make( 4, 6));  // copy Bochum
-         printf( "b:1)\n");
+         mulle_printf( "b:1)\n");
          mulle_vm_print( &copy);
 
          mulle_vm_paste( &vm, mulle_range_make( 0, 3), &copy);   // replace VfL
-         printf( "a:2)\n");
+         mulle_printf( "a:2)\n");
          mulle_vm_print( &vm);
 
          mulle_vm_paste( &vm, mulle_range_make( 14, 4), &copy);  // replace 1848
 
-         printf( "a:3)\n");
+         mulle_printf( "a:3)\n");
          mulle_vm_print( &vm);
       }
       mulle_vm_done( &copy);

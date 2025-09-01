@@ -14,7 +14,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
 
    info = mulle_vm_get_statistics(vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   printf("%s: %lu vm pages %lu os pages, %lu bytes\n", name,
+   mulle_printf("%s: %lu vm pages %lu os pages, %lu bytes\n", name,
          (long) _mulle__rbtree_get_count( (struct mulle__rbtree *) &vm->tree), total_pages, info.vm_size);
 
    // Show detailed page information
@@ -24,7 +24,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
    mulle_vm_tree_for( &vm->tree, node)
    {
       page = node->page;
-      printf("  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
+      mulle_printf("  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
              i, vm_address, page->size, page->used.location, page->used.length,
              (intptr_t) _mulle_atomic_pointer_read_nonatomic( &page->retain_count));
       vm_address += page->used.length;
@@ -41,16 +41,16 @@ static void dump_vm_content(struct mulle_vm *vm, const char *name)
 
    info = mulle_vm_get_statistics(vm);
    if (info.vm_size == 0) {
-      printf("%s content: (empty)\n", name);
+      mulle_printf("%s content: (empty)\n", name);
       return;
    }
 
    s = mulle_vm_read(vm, mulle_range_make(0, info.vm_size), buffer);
    if (s) {
       fwrite(s, 1, info.vm_size, stdout);
-      printf(" (length: %lu)\n", info.vm_size);
+      mulle_printf(" (length: %lu)\n", info.vm_size);
    } else {
-      printf("%s content: (read failed)\n", name);
+      mulle_printf("%s content: (read failed)\n", name);
    }
 }
 
@@ -72,21 +72,21 @@ int main(void)
    mulle_vm_append(&src_vm, test_data2, strlen( test_data2));
    mulle_vm_append(&src_vm, test_data3, strlen( test_data3));
 
-   printf("Initial state after adding test data to source:\n");
+   mulle_printf("Initial state after adding test data to source:\n");
    show_vm_info(&src_vm, "Source VM");
    dump_vm_content(&src_vm, "Source VM");
 
    // Test 2: Copy middle section (6-11, "World!")
-   printf("\nTest 2: Copy middle section (6-11)\n");
+   mulle_printf("\nTest 2: Copy middle section (6-11)\n");
    result = mulle_vm_copy(&dst_vm, &src_vm, mulle_range_make(6, 6));
-   printf("Copy result: %d\n", result);
+   mulle_printf("Copy result: %d\n", result);
    show_vm_info(&dst_vm, "Dest VM");
    dump_vm_content(&dst_vm, "Dest VM");
 
    // Cleanup
-   printf("Cleanup Dest VM\n");
+   mulle_printf("Cleanup Dest VM\n");
    mulle_vm_done(&dst_vm);
-   printf("Cleanup Source VM\n");
+   mulle_printf("Cleanup Source VM\n");
    mulle_vm_done(&src_vm);
 
    return 0;

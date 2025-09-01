@@ -16,7 +16,7 @@ static void show_vm( struct mulle_vm *vm)
 
    statistics  = mulle_vm_get_statistics( vm);
    total_pages = statistics.page_size / mulle_vm_get_pagesize();
-   printf( "%lu pages, %lu bytes\n", total_pages, statistics.vm_size);
+   mulle_printf( "%lu pages, %lu bytes\n", total_pages, statistics.vm_size);
 }
 
 static void dump_vm( struct mulle_vm *vm)
@@ -29,7 +29,7 @@ static void dump_vm( struct mulle_vm *vm)
    s = mulle_vm_read( vm, mulle_range_make( 0, statistics.vm_size), buf);
    if( s)
       fwrite( s, 1, statistics.vm_size, stdout);
-   printf( "\n");
+   mulle_printf( "\n");
 }
 
 int   main( void)
@@ -37,11 +37,11 @@ int   main( void)
    struct mulle_vm   vm;
    size_t            pagesize = mulle_vm_get_pagesize();
    
-   printf( "=== Testing simultaneous predecessor and successor coalescing ===\n");
-   printf( "Page size: %zu bytes\n", pagesize);
+   mulle_printf( "=== Testing simultaneous predecessor and successor coalescing ===\n");
+   mulle_printf( "Page size: %zu bytes\n", pagesize);
 
    // Test 1: Middle page deletion triggers both predecessor and successor coalescing
-   printf( "\n=== Test 1: Simultaneous predecessor + successor coalescing ===\n");
+   mulle_printf( "\n=== Test 1: Simultaneous predecessor + successor coalescing ===\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    // Create left page with available space at back
@@ -56,20 +56,20 @@ int   main( void)
    for( int i = 0; i < pagesize / 2; i++)
       mulle_vm_append( &vm, "C", 1);
    
-   printf( "Before: ");
+   mulle_printf( "Before: ");
    show_vm( &vm);
    dump_vm( &vm);
    
    // Delete middle page completely to trigger coalescing
    mulle_vm_delete( &vm, mulle_range_make( pagesize / 2, 2));
    
-   printf( "After middle page deletion: ");
+   mulle_printf( "After middle page deletion: ");
    show_vm( &vm);
    dump_vm( &vm);
    mulle_vm_done( &vm);
 
    // Test 2: Three consecutive pages - delete middle page
-   printf( "\n=== Test 2: Three consecutive pages - middle deletion ===\n");
+   mulle_printf( "\n=== Test 2: Three consecutive pages - middle deletion ===\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    // Left page
@@ -81,20 +81,20 @@ int   main( void)
    // Right page
    mulle_vm_append( &vm, "CCCC", 4);
    
-   printf( "Before: ");
+   mulle_printf( "Before: ");
    show_vm( &vm);
    dump_vm( &vm);
    
    // Delete the middle page data
    mulle_vm_delete( &vm, mulle_range_make( 4, 2));
    
-   printf( "After middle deletion: ");
+   mulle_printf( "After middle deletion: ");
    show_vm( &vm);
    dump_vm( &vm);
    mulle_vm_done( &vm);
 
    // Test 3: Complex scenario with multiple small pages
-   printf( "\n=== Test 3: Complex multi-page scenario ===\n");
+   mulle_printf( "\n=== Test 3: Complex multi-page scenario ===\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    // Create 5 pages with specific data patterns
@@ -113,20 +113,20 @@ int   main( void)
    // Page 5: small data
    mulle_vm_append( &vm, "R1", 2);
    
-   printf( "Before (5 pages): ");
+   mulle_printf( "Before (5 pages): ");
    show_vm( &vm);
    dump_vm( &vm);
    
    // Delete middle pages to trigger cascading coalescing
    mulle_vm_delete( &vm, mulle_range_make( 2, 6));
    
-   printf( "After deleting middle pages: ");
+   mulle_printf( "After deleting middle pages: ");
    show_vm( &vm);
    dump_vm( &vm);
    mulle_vm_done( &vm);
 
    // Test 4: Edge case - single character between two pages
-   printf( "\n=== Test 4: Single character bridging ===\n");
+   mulle_printf( "\n=== Test 4: Single character bridging ===\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    // Left page with space
@@ -140,19 +140,19 @@ int   main( void)
    for( int i = 0; i < pagesize - 1; i++)
       mulle_vm_append( &vm, "R", 1);
    
-   printf( "Before: ");
+   mulle_printf( "Before: ");
    show_vm( &vm);
    dump_vm( &vm);
    
    // Delete the bridge character
    mulle_vm_delete( &vm, mulle_range_make( pagesize - 1, 1));
    
-   printf( "After bridge deletion: ");
+   mulle_printf( "After bridge deletion: ");
    show_vm( &vm);
    dump_vm( &vm);
    mulle_vm_done( &vm);
 
-   printf( "\n=== Simultaneous coalescing tests completed ===\n");
+   mulle_printf( "\n=== Simultaneous coalescing tests completed ===\n");
    
    return( 0);
 }

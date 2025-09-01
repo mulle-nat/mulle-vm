@@ -16,12 +16,12 @@ static void   show_vm( struct mulle_vm *vm)
 
    info        = mulle_vm_get_statistics( vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   printf( "%lu OS pages, %lu bytes\n", total_pages, info.vm_size);
+   mulle_printf( "%lu OS pages, %lu bytes\n", total_pages, info.vm_size);
 
    i = 0;
    mulle_vm_for( vm, page)
    {
-      printf( "   %u: rc=%ld\n", i, mulle_vm_page_get_retaincount( page));
+      mulle_printf( "   %u: rc=%ld\n", i, mulle_vm_page_get_retaincount( page));
    }
 }
 

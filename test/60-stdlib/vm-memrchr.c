@@ -11,7 +11,7 @@ static void   show_vm( struct mulle_vm *vm)
 
    info        = mulle_vm_get_statistics( vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   printf( "%lu pages, %lu bytes\n", total_pages, info.vm_size);
+   mulle_printf( "%lu pages, %lu bytes\n", total_pages, info.vm_size);
 }
 
 
@@ -25,9 +25,9 @@ static void   dump_vm_content( struct mulle_vm *vm)
    s    = mulle_vm_read( vm, mulle_range_make( 0, info.vm_size), buf);
    if( s)
    {
-      printf( "VM content: \"");
+      mulle_printf( "VM content: \"");
       fwrite( s, 1, info.vm_size, stdout);
-      printf( "\"\n");
+      mulle_printf( "\"\n");
    }
 }
 
@@ -37,18 +37,18 @@ static void   test_mulle_vm_memrchr_empty( void)
    struct mulle_vm   vm;
    uintptr_t         result;
 
-   printf( "== Test mulle_vm_memrchr with empty VM ==\n");
+   mulle_printf( "== Test mulle_vm_memrchr with empty VM ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, &mulle_default_allocator);
    show_vm( &vm);
 
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'a');
-   printf( "Find 'a' in empty VM: ");
+   mulle_printf( "Find 'a' in empty VM: ");
    if( result == mulle_not_found_e)
-      printf( "PASS (not found)\n");
+      mulle_printf( "PASS (not found)\n");
    else
-      printf( "FAIL (expected not found, got %lu)\n", result);
+      mulle_printf( "FAIL (expected not found, got %lu)\n", result);
 
-   printf( "\n");
+   mulle_printf( "\n");
    mulle_vm_done( &vm);
 }
 
@@ -58,7 +58,7 @@ static void   test_mulle_vm_memrchr_single_page( void)
    struct mulle_vm   vm;
    uintptr_t         result;
 
-   printf( "== Test mulle_vm_memrchr with single page ==\n");
+   mulle_printf( "== Test mulle_vm_memrchr with single page ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    mulle_vm_append( &vm, "Hello", 5);
@@ -67,37 +67,37 @@ static void   test_mulle_vm_memrchr_single_page( void)
 
    // Test 1: Find last occurrence of 'l'
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'l');
-   printf( "Find last 'l': ");
+   mulle_printf( "Find last 'l': ");
    if( result == 3)  // Last 'l' is at position 3 in "Hello"
-      printf( "PASS (found at %lu)\n", result);
+      mulle_printf( "PASS (found at %lu)\n", result);
    else
-      printf( "FAIL (expected 3, got %lu)\n", result);
+      mulle_printf( "FAIL (expected 3, got %lu)\n", result);
 
    // Test 2: Find first character (which is also last)
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'H');
-   printf( "Find 'H': ");
+   mulle_printf( "Find 'H': ");
    if( result == 0)
-      printf( "PASS (found at %lu)\n", result);
+      mulle_printf( "PASS (found at %lu)\n", result);
    else
-      printf( "FAIL (expected 0, got %lu)\n", result);
+      mulle_printf( "FAIL (expected 0, got %lu)\n", result);
 
    // Test 3: Find last character 'o'
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'o');
-   printf( "Find 'o': ");
+   mulle_printf( "Find 'o': ");
    if( result == 4)
-      printf( "PASS (found at %lu)\n", result);
+      mulle_printf( "PASS (found at %lu)\n", result);
    else
-      printf( "FAIL (expected 4, got %lu)\n", result);
+      mulle_printf( "FAIL (expected 4, got %lu)\n", result);
 
    // Test 4: Character not found
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'z');
-   printf( "Find 'z': ");
+   mulle_printf( "Find 'z': ");
    if( result == mulle_not_found_e)
-      printf( "PASS (not found)\n");
+      mulle_printf( "PASS (not found)\n");
    else
-      printf( "FAIL (expected not found, got %lu)\n", result);
+      mulle_printf( "FAIL (expected not found, got %lu)\n", result);
 
-   printf( "\n");
+   mulle_printf( "\n");
    mulle_vm_done( &vm);
 }
 
@@ -107,7 +107,7 @@ static void   test_mulle_vm_memrchr_multiple_pages( void)
    struct mulle_vm   vm;
    uintptr_t         result;
 
-   printf( "== Test mulle_vm_memrchr with multiple pages ==\n");
+   mulle_printf( "== Test mulle_vm_memrchr with multiple pages ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    // Create multiple pages with repeating characters
@@ -124,37 +124,37 @@ static void   test_mulle_vm_memrchr_multiple_pages( void)
 
    // Test 1: Find last occurrence of 'a' (should be at position 27)
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'a');
-   printf( "Find last 'a': ");
+   mulle_printf( "Find last 'a': ");
    if( result == 27)
-      printf( "PASS (found at %lu)\n", result);
+      mulle_printf( "PASS (found at %lu)\n", result);
    else
-      printf( "FAIL (expected 27, got %lu)\n", result);
+      mulle_printf( "FAIL (expected 27, got %lu)\n", result);
 
    // Test 2: Find character in middle page
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'k');
-   printf( "Find 'k' (middle page): ");
+   mulle_printf( "Find 'k' (middle page): ");
    if( result == 10)
-      printf( "PASS (found at %lu)\n", result);
+      mulle_printf( "PASS (found at %lu)\n", result);
    else
-      printf( "FAIL (expected 10, got %lu)\n", result);
+      mulle_printf( "FAIL (expected 10, got %lu)\n", result);
 
    // Test 3: Find character in first page
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'b');
-   printf( "Find 'b' (first page): ");
+   mulle_printf( "Find 'b' (first page): ");
    if( result == 1)
-      printf( "PASS (found at %lu)\n", result);
+      mulle_printf( "PASS (found at %lu)\n", result);
    else
-      printf( "FAIL (expected 1, got %lu)\n", result);
+      mulle_printf( "FAIL (expected 1, got %lu)\n", result);
 
    // Test 4: Character not found
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'A');
-   printf( "Find 'A' (not found): ");
+   mulle_printf( "Find 'A' (not found): ");
    if( result == mulle_not_found_e)
-      printf( "PASS (not found)\n");
+      mulle_printf( "PASS (not found)\n");
    else
-      printf( "FAIL (expected not found, got %lu)\n", result);
+      mulle_printf( "FAIL (expected not found, got %lu)\n", result);
 
-   printf( "\n");
+   mulle_printf( "\n");
    mulle_vm_done( &vm);
 }
 
@@ -164,7 +164,7 @@ static void   test_mulle_vm_memrchr_page_boundaries( void)
    struct mulle_vm   vm;
    uintptr_t         result;
 
-   printf( "== Test mulle_vm_memrchr at page boundaries ==\n");
+   mulle_printf( "== Test mulle_vm_memrchr at page boundaries ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    // Set up data where target characters are at page boundaries
@@ -177,13 +177,13 @@ static void   test_mulle_vm_memrchr_page_boundaries( void)
 
    // Should find the last 'T' at position 20 (reverse search)
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'T');
-   printf( "Find last 'T': ");
+   mulle_printf( "Find last 'T': ");
    if( result == 20)
-      printf( "PASS (found at %lu)\n", result);
+      mulle_printf( "PASS (found at %lu)\n", result);
    else
-      printf( "FAIL (expected 20, got %lu)\n", result);
+      mulle_printf( "FAIL (expected 20, got %lu)\n", result);
 
-   printf( "\n");
+   mulle_printf( "\n");
    mulle_vm_done( &vm);
 }
 
@@ -192,16 +192,16 @@ static void   test_mulle_vm_memrchr_null_vm( void)
 {
    uintptr_t   result;
 
-   printf( "== Test mulle_vm_memrchr with NULL VM ==\n");
+   mulle_printf( "== Test mulle_vm_memrchr with NULL VM ==\n");
    
    result = mulle_vm_memrchr( NULL, mulle_range_make_all(), 'a');
-   printf( "Find 'a' in NULL VM: ");
+   mulle_printf( "Find 'a' in NULL VM: ");
    if( result == mulle_not_found_e)
-      printf( "PASS (not found)\n");
+      mulle_printf( "PASS (not found)\n");
    else
-      printf( "FAIL (expected not found, got %lu)\n", result);
+      mulle_printf( "FAIL (expected not found, got %lu)\n", result);
 
-   printf( "\n");
+   mulle_printf( "\n");
 }
 
 
@@ -210,7 +210,7 @@ static void   test_mulle_vm_memrchr_multiple_occurrences( void)
    struct mulle_vm   vm;
    uintptr_t         result;
 
-   printf( "== Test mulle_vm_memrchr with multiple occurrences ==\n");
+   mulle_printf( "== Test mulle_vm_memrchr with multiple occurrences ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    // Create pattern with repeated characters across pages
@@ -223,21 +223,21 @@ static void   test_mulle_vm_memrchr_multiple_occurrences( void)
 
    // Should find the last 'X' at position 20
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'X');
-   printf( "Find last 'X': ");
+   mulle_printf( "Find last 'X': ");
    if( result == 20)
-      printf( "PASS (found at %lu)\n", result);
+      mulle_printf( "PASS (found at %lu)\n", result);
    else
-      printf( "FAIL (expected 20, got %lu)\n", result);
+      mulle_printf( "FAIL (expected 20, got %lu)\n", result);
 
    // Test with other repeated characters
    result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'a');
-   printf( "Find 'a': ");
+   mulle_printf( "Find 'a': ");
    if( result == 1)
-      printf( "PASS (found at %lu)\n", result);
+      mulle_printf( "PASS (found at %lu)\n", result);
    else
-      printf( "FAIL (expected 1, got %lu)\n", result);
+      mulle_printf( "FAIL (expected 1, got %lu)\n", result);
 
-   printf( "\n");
+   mulle_printf( "\n");
    mulle_vm_done( &vm);
 }
 
@@ -250,7 +250,7 @@ static void   test_mulle_vm_memrchr_comprehensive( void)
    uintptr_t         expected[] = {24, 4, 8, 14, 17, 21, 25, mulle_not_found_e};
    int               i;
 
-   printf( "== Test mulle_vm_memrchr comprehensive ==\n");
+   mulle_printf( "== Test mulle_vm_memrchr comprehensive ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    // Create pattern where some characters appear multiple times
@@ -268,20 +268,20 @@ static void   test_mulle_vm_memrchr_comprehensive( void)
    for( i = 0; i < sizeof(test_chars); i++)
    {
       result = mulle_vm_memrchr( &vm, mulle_range_make_all(), test_chars[i]);
-      printf( "Find last '%c': ", test_chars[i]);
+      mulle_printf( "Find last '%c': ", test_chars[i]);
       if( result == expected[i])
-         printf( "PASS");
+         mulle_printf( "PASS");
       else
-         printf( "FAIL (expected %lu, got %lu)", expected[i], result);
+         mulle_printf( "FAIL (expected %lu, got %lu)", expected[i], result);
       
       if( result != mulle_not_found_e)
-         printf( " (found at %lu)", result);
+         mulle_printf( " (found at %lu)", result);
       else
-         printf( " (not found)");
-      printf( "\n");
+         mulle_printf( " (not found)");
+      mulle_printf( "\n");
    }
 
-   printf( "\n");
+   mulle_printf( "\n");
    mulle_vm_done( &vm);
 }
 
@@ -292,7 +292,7 @@ static void   test_mulle_vm_memrchr_vs_memchr( void)
    uintptr_t         memchr_result;
    uintptr_t         memrchr_result;
 
-   printf( "== Test mulle_vm_memrchr vs mulle_vm_memchr ==\n");
+   mulle_printf( "== Test mulle_vm_memrchr vs mulle_vm_memchr ==\n");
    mulle_vm_init( &vm, &mulle_vm_debug_config, NULL);
    
    // Create pattern with multiple occurrences to show the difference
@@ -304,27 +304,27 @@ static void   test_mulle_vm_memrchr_vs_memchr( void)
    memchr_result = mulle_vm_memchr( &vm, mulle_range_make_all(), 'T');
    memrchr_result = mulle_vm_memrchr( &vm, mulle_range_make_all(), 'T');
    
-   printf( "Forward search for 'T': ");
+   mulle_printf( "Forward search for 'T': ");
    if( memchr_result == 0)
-      printf( "PASS (found at %lu)\n", memchr_result);
+      mulle_printf( "PASS (found at %lu)\n", memchr_result);
    else
-      printf( "FAIL (expected 0, got %lu)\n", memchr_result);
+      mulle_printf( "FAIL (expected 0, got %lu)\n", memchr_result);
       
-   printf( "Reverse search for 'T': ");
+   mulle_printf( "Reverse search for 'T': ");
    if( memrchr_result == 7)
-      printf( "PASS (found at %lu)\n", memrchr_result);
+      mulle_printf( "PASS (found at %lu)\n", memrchr_result);
    else
-      printf( "FAIL (expected 7, got %lu)\n", memrchr_result);
+      mulle_printf( "FAIL (expected 7, got %lu)\n", memrchr_result);
 
-   printf( "\n");
+   mulle_printf( "\n");
    mulle_vm_done( &vm);
 }
 
 
 int   main( void)
 {
-   printf( "Testing mulle_vm_memrchr function\n");
-   printf( "=================================\n\n");
+   mulle_printf( "Testing mulle_vm_memrchr function\n");
+   mulle_printf( "=================================\n\n");
 
    test_mulle_vm_memrchr_empty();
    test_mulle_vm_memrchr_single_page();
@@ -335,6 +335,6 @@ int   main( void)
    test_mulle_vm_memrchr_comprehensive();
    test_mulle_vm_memrchr_vs_memchr();
 
-   printf( "All mulle_vm_memrchr tests completed.\n");
+   mulle_printf( "All mulle_vm_memrchr tests completed.\n");
    return( 0);
 }
