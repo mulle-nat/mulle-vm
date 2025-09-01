@@ -1,65 +1,24 @@
 === VM Cut Test ===
 
 Initial state:
-Source VM: 1 vm pages 7 os pages, 50 bytes
-  Page 0: vm_addr=0, size=56, used=[1,50], retain_count=0
-Hello World! This is test data for cut operations. (length: 50)
-Dest VM: 0 vm pages 0 os pages, 0 bytes
-
+Hello World! This is test data for cut operations.
 Test 1: Cut first 5 characters (0-5)
 Cut result: 0
-Dest VM: 1 vm pages 1 os pages, 5 bytes
-  Page 0: vm_addr=0, size=8, used=[0,5], retain_count=0
-Hello (length: 5)
-Source VM (after cut): 1 vm pages 7 os pages, 45 bytes
-  Page 0: vm_addr=0, size=56, used=[6,45], retain_count=0
- World! This is test data for cut operations. (length: 45)
-
+Hello World! This is test data for cut operations.
 Test 2: Cut middle section (6-11)
 Cut result: 0
-Dest VM: 1 vm pages 1 os pages, 6 bytes
-  Page 0: vm_addr=0, size=8, used=[0,6], retain_count=0
-World! (length: 6)
-Source VM (after cut): 1 vm pages 6 os pages, 44 bytes
-  Page 0: vm_addr=0, size=48, used=[1,44], retain_count=0
-Hello  This is test data for cut operations. (length: 44)
-
+World!Hello  This is test data for cut operations.
 Test 3: Cut entire content
 Cut result: 0
-Dest VM: 1 vm pages 7 os pages, 50 bytes
-  Page 0: vm_addr=0, size=56, used=[1,50], retain_count=0
-Hello World! This is test data for cut operations. (length: 50)
-Source VM (after cut): 0 vm pages 0 os pages, 0 bytes
-Source VM (after cut) content: (empty)
-
+Hello World! This is test data for cut operations.
 Test 4: Cut from end (last 10 characters)
 Cut result: -1
-Dest VM: 0 vm pages 0 os pages, 0 bytes
-Dest VM content: (empty)
-Source VM (after cut): 0 vm pages 0 os pages, 0 bytes
-Source VM (after cut) content: (empty)
 
 Test 5: Multiple cut operations
 First cut result: 0
-Dest VM after first cut: 1 vm pages 1 os pages, 5 bytes
-  Page 0: vm_addr=0, size=8, used=[0,5], retain_count=0
-Hello (length: 5)
-Source VM after first cut: 1 vm pages 7 os pages, 45 bytes
-  Page 0: vm_addr=0, size=56, used=[6,45], retain_count=0
- World! This is test data for cut operations. (length: 45)
-Second cut result: 0
-Dest VM after second cut: 2 vm pages 2 os pages, 12 bytes
-  Page 0: vm_addr=0, size=8, used=[0,5], retain_count=0
-  Page 1: vm_addr=5, size=8, used=[0,7], retain_count=0
-Hello World! (length: 12)
-Source VM after second cut: 1 vm pages 6 os pages, 38 bytes
-  Page 0: vm_addr=0, size=48, used=[5,38], retain_count=0
- This is test data for cut operations. (length: 38)
-
+Hello World! This is test data for cut operations.Second cut result: 0
+Hello World! This is test data for cut operations.
 Test 6: Cut with invalid range (beyond source)
 Cut result (should fail): -1
-Dest VM: 0 vm pages 0 os pages, 0 bytes
-Source VM: 1 vm pages 7 os pages, 50 bytes
-  Page 0: vm_addr=0, size=56, used=[1,50], retain_count=0
 
 === Cut Test Complete ===

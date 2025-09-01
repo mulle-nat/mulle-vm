@@ -1,13 +1,6 @@
 Initial state after adding test data to source:
-Source VM: 2 vm pages 7 os pages, 53 bytes
-  Page 0: vm_addr=0, size=16, used=[1,15], retain_count=0
-  Page 1: vm_addr=15, size=40, used=[0,38], retain_count=0
-Hello World! - This is test data for copy operations. (length: 53)
-
+Hello World! - This is test data for copy operations.
 Test 2: Copy middle section (6-11)
 Copy result: 0
-Dest VM: 1 vm pages 1 os pages, 6 bytes
-  Page 0: vm_addr=0, size=8, used=[0,6], retain_count=0
-World! (length: 6)
-Cleanup Dest VM
+World!Cleanup Dest VM
 Cleanup Source VM

@@ -1,22 +1,8 @@
 === VM Paste Test ===
 
 Initial state:
-Dest VM: 1 vm pages 6 os pages, 44 bytes
-  Page 0: vm_addr=0, size=48, used=[1,44], retain_count=0
-The quick brown fox jumps over the lazy dog. (length: 44)
-Source VM: 1 vm pages 2 os pages, 13 bytes
-  Page 0: vm_addr=0, size=16, used=[0,13], retain_count=0
-INSERTED TEXT (length: 13)
-
+The quick brown fox jumps over the lazy dog.INSERTED TEXT
 Test: Insert without replacement (zero-length range after 'quick')
 Paste result: 0
-Dest VM: 3 vm pages 13 os pages, 57 bytes
-  Page 0: vm_addr=0, size=48, used=[1,9], retain_count=0
-  Page 1: vm_addr=9, size=16, used=[0,13], retain_count=1
-  Page 2: vm_addr=22, size=40, used=[1,35], retain_count=0
-The quickINSERTED TEXT brown fox jumps over the lazy dog. (length: 57)
-Source VM (should be unchanged): 1 vm pages 2 os pages, 13 bytes
-  Page 0: vm_addr=0, size=16, used=[0,13], retain_count=1
-INSERTED TEXT (length: 13)
-
+The quickINSERTED TEXT brown fox jumps over the lazy dog.INSERTED TEXT
 === Paste Test Complete ===

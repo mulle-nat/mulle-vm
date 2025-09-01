@@ -11,7 +11,7 @@ static void   show_vm( struct mulle_vm *vm)
 
    info        = mulle_vm_get_statistics( vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   mulle_printf( "%lu pages, %lu bytes\n", total_pages, info.vm_size);
+   mulle_fprintf( stderr, "%lu pages, %lu bytes\n", total_pages, info.vm_size);
 }
 
 

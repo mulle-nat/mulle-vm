@@ -11,7 +11,7 @@ static void   show_vm( struct mulle_vm *vm)
 
    info        = mulle_vm_get_statistics( vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   mulle_printf( "%lu pages, %lu bytes\n", total_pages, info.vm_size);
+   mulle_fprintf( stderr, "%lu pages, %lu bytes\n", total_pages, info.vm_size);
 }
 
 
@@ -71,7 +71,7 @@ static void   test_newline_search_sequential( void)
    dump_vm_content_debug( &vm);
    
    total_length = mulle_vm_get_length( &vm);
-   mulle_printf( "Total length: %zu\n", total_length);
+   mulle_fprintf( stderr, "Total length: %zu\n", total_length);
    
    // Now do the exact same logic as mulle_editor_build_tree
    line_start = 0;
@@ -148,7 +148,7 @@ static void   test_newline_from_file( void)
    dump_vm_content_debug( &vm);
    
    total_length = mulle_vm_get_length( &vm);
-   mulle_printf( "Total length from file: %zu\n", total_length);
+   mulle_fprintf( stderr, "Total length from file: %zu\n", total_length);
    
    // Now do the exact same logic as mulle_editor_build_tree
    line_start = 0;

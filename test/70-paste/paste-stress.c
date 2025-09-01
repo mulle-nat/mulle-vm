@@ -19,7 +19,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
 
    info = mulle_vm_get_statistics(vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   mulle_printf("%s: %lu vm pages %lu os pages, %lu bytes\n", name,
+   mulle_fprintf(stderr, "%s: %lu vm pages %lu os pages, %lu bytes\n", name,
           (long) _mulle__rbtree_get_count( (struct mulle__rbtree *) &vm->tree), total_pages, info.vm_size);
    
    // Show detailed page information
@@ -29,7 +29,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
    mulle_vm_tree_for( &vm->tree, node)
    {
       page = node->page;
-      mulle_printf("  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
+      mulle_fprintf(stderr, "  Page %u: vm_addr=%lu, size=%lu, used=[%lu,%lu], retain_count=%td\n",
              i, vm_address, page->size, page->used.location, page->used.length,
              (intptr_t) _mulle_atomic_pointer_read_nonatomic( &page->retain_count));
       vm_address += page->used.length;
@@ -47,7 +47,7 @@ static void dump_vm_content(struct mulle_vm *vm, const char *name)
 
    info = mulle_vm_get_statistics(vm);
    if (info.vm_size == 0) {
-      mulle_printf("%s content: (empty)\n", name);
+      mulle_fprintf(stderr, "%s content: (empty)\n", name);
       return;
    }
 
@@ -58,12 +58,12 @@ static void dump_vm_content(struct mulle_vm *vm, const char *name)
       mulle_printf("%s content preview: ", name);
       fwrite(s, 1, preview_size, stdout);
       if (info.vm_size > 100) {
-         mulle_printf("... (total length: %lu)\n", info.vm_size);
+         mulle_fprintf(stderr, "... (total length: %lu)\n", info.vm_size);
       } else {
-         mulle_printf(" (length: %lu)\n", info.vm_size);
+         mulle_fprintf(stderr, " (length: %lu)\n", info.vm_size);
       }
    } else {
-      mulle_printf("%s content: (read failed)\n", name);
+      mulle_fprintf(stderr, "%s content: (read failed)\n", name);
    }
 }
 

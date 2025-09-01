@@ -1,8 +1,6 @@
 == after init ==
-0 pages, 0 bytes
 
 == build from 0 ==
-4 pages, 26 bytes
 abcdefghijklmnopqrstuvwxyz
 VM:
 	 0-8  (8-[0,0])
@@ -11,7 +9,6 @@ VM:
 	23-26 (8-[1,4])
 
 == delete 'f' in the middle ==
-4 pages, 25 bytes
 abcdeghijklmnopqrstuvwxyz
 VM:
 	 0-7  (8-[0,1])
@@ -20,7 +17,6 @@ VM:
 	22-25 (8-[1,4])
 
 == delete 'a' in front ==
-4 pages, 24 bytes
 bcdeghijklmnopqrstuvwxyz
 VM:
 	 0-6  (8-[1,1])
@@ -29,7 +25,6 @@ VM:
 	21-24 (8-[1,4])
 
 == delete 'z' in back ==
-4 pages, 23 bytes
 bcdeghijklmnopqrstuvwxy
 VM:
 	 0-6  (8-[1,1])
@@ -38,7 +33,6 @@ VM:
 	21-23 (8-[1,5])
 
 == delete { 2, 12} (more than a page size) ==
-3 pages, 11 bytes
 bcqrstuvwxy
 VM:
 	 0-2  (8-[1,5])

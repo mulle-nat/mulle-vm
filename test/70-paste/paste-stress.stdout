@@ -1,37 +1,16 @@
 === VM Paste Stress Test ===
 
 Initial state:
-Source VM: 1 vm pages 10 os pages, 79 bytes
-  Page 0: vm_addr=0, size=80, used=[0,79], retain_count=0
-Source VM content preview: STRESS TEST DATA - This is a moderately sized test string for paste operations. (length: 79)
-Dest VM: 0 vm pages 0 os pages, 0 bytes
-Dest VM content: (empty)
-
+Source VM content preview: STRESS TEST DATA - This is a moderately sized test string for paste operations.
 Test 1: First paste operation (paste at beginning)
 Paste result: 0
-Dest VM after first paste: 1 vm pages 10 os pages, 79 bytes
-  Page 0: vm_addr=0, size=80, used=[0,79], retain_count=1
-Dest VM after first paste content preview: STRESS TEST DATA - This is a moderately sized test string for paste operations. (length: 79)
-
+Dest VM after first paste content preview: STRESS TEST DATA - This is a moderately sized test string for paste operations.
 Test 2: Second paste operation (paste at end - append)
 Paste result: 0
-Dest VM after second paste: 2 vm pages 20 os pages, 158 bytes
-  Page 0: vm_addr=0, size=80, used=[0,79], retain_count=2
-  Page 1: vm_addr=79, size=80, used=[0,79], retain_count=2
-Dest VM after second paste content preview: STRESS TEST DATA - This is a moderately sized test string for paste operations.STRESS TEST DATA - Th... (total length: 158)
-
+Dest VM after second paste content preview: STRESS TEST DATA - This is a moderately sized test string for paste operations.STRESS TEST DATA - Th
 Test 3: Third paste operation (paste in middle - replace)
 Paste result: 0
-Dest VM after third paste: 4 vm pages 31 os pages, 218 bytes
-  Page 0: vm_addr=0, size=64, used=[0,39], retain_count=0
-  Page 1: vm_addr=39, size=80, used=[0,79], retain_count=2
-  Page 2: vm_addr=118, size=24, used=[0,21], retain_count=0
-  Page 3: vm_addr=139, size=80, used=[0,79], retain_count=2
-Dest VM after third paste content preview: STRESS TEST DATA - This is a moderatelySTRESS TEST DATA - This is a moderately sized test string for... (total length: 218)
-
+Dest VM after third paste content preview: STRESS TEST DATA - This is a moderatelySTRESS TEST DATA - This is a moderately sized test string for
 Verify source VM unchanged:
-Source VM: 1 vm pages 10 os pages, 79 bytes
-  Page 0: vm_addr=0, size=80, used=[0,79], retain_count=2
-Source VM content preview: STRESS TEST DATA - This is a moderately sized test string for paste operations. (length: 79)
-
+Source VM content preview: STRESS TEST DATA - This is a moderately sized test string for paste operations.
 === Paste Stress Test Complete ===

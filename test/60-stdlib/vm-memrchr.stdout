@@ -2,43 +2,32 @@ Testing mulle_vm_memrchr function
 =================================
 
 == Test mulle_vm_memrchr with empty VM ==
-0 pages, 0 bytes
 Find 'a' in empty VM: PASS (not found)
 
 == Test mulle_vm_memrchr with single page ==
-1 pages, 5 bytes
-VM content: "Hello"
-Find last 'l': PASS (found at 3)
+HelloFind last 'l': PASS (found at 3)
 Find 'H': PASS (found at 0)
 Find 'o': PASS (found at 4)
 Find 'z': PASS (not found)
 
 == Test mulle_vm_memrchr with multiple pages ==
-4 pages, 28 bytes
-VM content: "abcdefghijklmnopqrstuvwaxyza"
-Find last 'a': PASS (found at 27)
+abcdefghijklmnopqrstuvwaxyzaFind last 'a': PASS (found at 27)
 Find 'k' (middle page): PASS (found at 10)
 Find 'b' (first page): PASS (found at 1)
 Find 'A' (not found): PASS (not found)
 
 == Test mulle_vm_memrchr at page boundaries ==
-3 pages, 24 bytes
-VM content: "abcdefgTTijklmnopqrsTuvw"
-Find last 'T': PASS (found at 20)
+abcdefgTTijklmnopqrsTuvwFind last 'T': PASS (found at 20)
 
 == Test mulle_vm_memrchr with NULL VM ==
 Find 'a' in NULL VM: PASS (not found)
 
 == Test mulle_vm_memrchr with multiple occurrences ==
-3 pages, 24 bytes
-VM content: "XabcXdefXghiXjklXmnoXpqr"
-Find last 'X': PASS (found at 20)
+XabcXdefXghiXjklXmnoXpqrFind last 'X': PASS (found at 20)
 Find 'a': PASS (found at 1)
 
 == Test mulle_vm_memrchr comprehensive ==
-5 pages, 28 bytes
-VM content: "abcdefghijklmnmopqrstuvwaxyz"
-Find last 'a': PASS (found at 24)
+abcdefghijklmnmopqrstuvwaxyzFind last 'a': PASS (found at 24)
 Find last 'e': PASS (found at 4)
 Find last 'i': PASS (found at 8)
 Find last 'm': PASS (found at 14)
@@ -48,9 +37,7 @@ Find last 'x': PASS (found at 25)
 Find last 'Z': PASS (not found)
 
 == Test mulle_vm_memrchr vs mulle_vm_memchr ==
-1 pages, 8 bytes
-VM content: "TestTesT"
-Forward search for 'T': PASS (found at 0)
+TestTesTForward search for 'T': PASS (found at 0)
 Reverse search for 'T': PASS (found at 7)
 
 All mulle_vm_memrchr tests completed.

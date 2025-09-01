@@ -1,7 +1,6 @@
 abcdefghijklmnopqrstuvwxyz
 == delete {0, 8} ==
 ijklmnopqrstuvwxyz
-3 pages, 18 bytes
 VM:
 	 0-8  (8-[0,0])
 	 8-15 (8-[1,0])
@@ -10,7 +9,6 @@ VM:
 abcdefghijklmnopqrstuvwxyz
 == delete {1, 8} ==
 ajklmnopqrstuvwxyz
-4 pages, 18 bytes
 VM:
 	 0-1  (8-[0,7])
 	 1-8  (8-[1,0])
@@ -20,7 +18,6 @@ VM:
 abcdefghijklmnopqrstuvwxyz
 == delete {7, 8} ==
 abcdefgpqrstuvwxyz
-4 pages, 18 bytes
 VM:
 	 0-7  (8-[0,1])
 	 7-8  (8-[7,0])
@@ -30,7 +27,6 @@ VM:
 abcdefghijklmnopqrstuvwxyz
 == delete {7, 9} ==
 abcdefgqrstuvwxyz
-3 pages, 17 bytes
 VM:
 	 0-7  (8-[0,1])
 	 7-14 (8-[1,0])
@@ -39,7 +35,6 @@ VM:
 abcdefghijklmnopqrstuvwxyz
 == delete {7, 10} ==
 abcdefgrstuvwxyz
-3 pages, 16 bytes
 VM:
 	 0-7  (8-[0,1])
 	 7-13 (8-[2,0])
@@ -48,7 +43,6 @@ VM:
 abcdefghijklmnopqrstuvwxyz
 == delete {8, 7} ==
 abcdefghpqrstuvwxyz
-4 pages, 19 bytes
 VM:
 	 0-8  (8-[0,0])
 	 8-9  (8-[7,0])
@@ -58,7 +52,6 @@ VM:
 abcdefghijklmnopqrstuvwxyz
 == delete {8, 8} ==
 abcdefghqrstuvwxyz
-3 pages, 18 bytes
 VM:
 	 0-8  (8-[0,0])
 	 8-15 (8-[1,0])
@@ -67,7 +60,6 @@ VM:
 abcdefghijklmnopqrstuvwxyz
 == delete {8, 9} ==
 abcdefghrstuvwxyz
-3 pages, 17 bytes
 VM:
 	 0-8  (8-[0,0])
 	 8-14 (8-[2,0])
@@ -75,27 +67,23 @@ VM:
 
 abcdefghijklmnopqrstuvwxyz
 == delete {0, 26} ==
-0 pages, 0 bytes
 VM:
 
 abcdefghijklmnopqrstuvwxyz
 == delete {1, 25} ==
 a
-1 pages, 1 bytes
 VM:
 	 0-1  (8-[0,7])
 
 abcdefghijklmnopqrstuvwxyz
 == delete {0, 25} ==
 z
-1 pages, 1 bytes
 VM:
 	 0-1  (8-[3,4])
 
 abcdefghijklmnopqrstuvwxyz
 == delete {1, 24} ==
 az
-2 pages, 2 bytes
 VM:
 	 0-1  (8-[0,7])
 	 1-2  (8-[3,4])

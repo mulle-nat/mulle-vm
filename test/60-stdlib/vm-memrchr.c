@@ -11,7 +11,7 @@ static void   show_vm( struct mulle_vm *vm)
 
    info        = mulle_vm_get_statistics( vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
-   mulle_printf( "%lu pages, %lu bytes\n", total_pages, info.vm_size);
+   mulle_fprintf( stderr, "%lu pages, %lu bytes\n", total_pages, info.vm_size);
 }
 
 
@@ -25,9 +25,9 @@ static void   dump_vm_content( struct mulle_vm *vm)
    s    = mulle_vm_read( vm, mulle_range_make( 0, info.vm_size), buf);
    if( s)
    {
-      mulle_printf( "VM content: \"");
+      mulle_fprintf( stderr, "VM content: \"");
       fwrite( s, 1, info.vm_size, stdout);
-      mulle_printf( "\"\n");
+      mulle_fprintf( stderr, "\"\n");
    }
 }
 
