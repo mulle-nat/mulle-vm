@@ -207,7 +207,7 @@ static void test_mulle_vm_for_reverse_detailed_info(void)
 
    count = 0;
    vm_address = 0;
-   mulle_vm_tree_for_reverse(&vm, node)
+   mulle_vm_tree_for_reverse(&vm.tree, node)
    {
       mulle_printf("Page %zu: address=%lu, size=%lu, used=[%lu,%lu), holes=[front:%lu, back:%lu]\n",
              total_pages - count - 1,

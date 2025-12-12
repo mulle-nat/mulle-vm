@@ -163,10 +163,10 @@ static void   test_mulle_vm_for_multiple_pages( void)
 
 static void   test_mulle_vm_for_null_vm( void)
 {
-   struct mulle_vm   *vm;
-   int               count;
-   uintptr_t         vm_address;
-   struct mulle_vm_node *node;
+   struct mulle_vm_tree   *vm;
+   int                    count;
+   uintptr_t              vm_address;
+   struct mulle_vm_node   *node;
 
    mulle_printf( "== Test mulle_vm_mapping_for with NULL VM ==\n");
    vm = NULL;

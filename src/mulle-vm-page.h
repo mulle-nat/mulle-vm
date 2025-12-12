@@ -191,6 +191,13 @@ static inline size_t
    return( page ? page->size - mulle_range_get_max( page->used) : 0);
 }
 
+static inline int
+   mulle_vm_page_is_shared( struct mulle_vm_page *page)
+{
+   return( page ? _mulle_atomic_pointer_read( &page->retain_count) != NULL : 0);
+}
+
+
 
 
 static inline size_t

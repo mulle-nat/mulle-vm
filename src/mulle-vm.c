@@ -154,15 +154,16 @@ static inline size_t   round_down_to_pagesize( size_t size, size_t pagesize)
 // cached the pointer to info->page and reuse it after _mulle_vm_will_write_page,
 // you are in deep shit...
 //
-struct mulle_vm_page *   _mulle_vm_will_write_page( struct mulle_vm *vm,
-                                                   struct mulle_vm_page *page)
+MULLE_C_NONNULL_FIRST_SECOND
+static struct mulle_vm_page *
+   _mulle_vm_will_write_page( struct mulle_vm *vm, struct mulle_vm_page *page)
 {
    struct mulle_vm_page   *copy;
    void                   *bytes;
    size_t                 length;
 
    // if not shared we don't need to copy on write
-   if( ! _mulle_atomic_pointer_read( &page->retain_count))
+   if( ! mulle_vm_page_is_shared( page))
       return( page);
 
    //

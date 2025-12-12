@@ -66,10 +66,16 @@ static inline size_t   round_down_to_pagesize( size_t size, size_t pagesize)
 }
 
 
+
+/**
+ **
+ **
+ **
+ */
 void *   _mulle_vm_alloc_ospages( size_t size)
 {
-   void     *mem;
-   void     (*fail)( struct mulle_allocator *, void *, size_t)  MULLE_C_NO_RETURN;
+   void   *mem;
+   void   (*fail)( struct mulle_allocator *, void *, size_t)  MULLE_C_NO_RETURN;
 
    mulle_thread_mutex_do( global.lock)
    {
@@ -96,13 +102,6 @@ void *   _mulle_vm_alloc_ospages( size_t size)
    return( mem);
 }
 
-
-
-/**
- **
- **
- **
- */
 
 // the mulle_vm_page MUST have been removed from pages already!
 // (if you are freeing all the pages from mulle_vm_page)
@@ -179,6 +178,12 @@ void   mulle_vm_reset_freed_ospages( void)
 }
 
 
+
+/**
+ **
+ **
+ **
+ */
 struct mulle_vm_page   *mulle_vm_page_alloc( void)
 {
    struct mulle_vm_page   *page;
@@ -195,7 +200,7 @@ void   mulle_vm_page_free( struct mulle_vm_page *page)
 {
    mulle_thread_mutex_do( global.lock)
    {
-      _mulle_vm_free_ospages_unlocked( page->bytes,page->size);
+      _mulle_vm_free_ospages_unlocked( page->bytes, page->size);
       _mulle_storage_free( &global.vm_pages, page);
    }
 }
@@ -230,7 +235,9 @@ struct mulle_vm_page *  mulle_vm_page_new_with_bytes( void *bytes,
    memcpy( &mem[ range.location], bytes, length);
 #ifdef DEBUG
    mulle_memset_uint32( &mem[ 0], 0xFEEDFACE, range.location);
-   mulle_memset_uint32( &mem[ mulle_range_get_max( range)], 0xFEEDFACE, size - mulle_range_get_max( range));
+   mulle_memset_uint32( &mem[ mulle_range_get_max( range)],
+                        0xFEEDFACE,
+                        size - mulle_range_get_max( range));
 #endif
 
    page = mulle_vm_page_alloc();
@@ -277,91 +284,94 @@ void   mulle_vm_page_release( struct mulle_vm_page *page)
 // Moves data only to enlarge available front or back spaces as needed.
 int   _mulle_vm_page_join( struct mulle_vm_page *a, struct mulle_vm_page *b)
 {
-    size_t a_used_len = a->used.length;
-    size_t b_used_len = b->used.length;
+   size_t   a_used_len;
+   size_t   b_used_len;
+   size_t   a_available_back;
+   size_t   b_available_back;
+   size_t   b_available_front;
 
-    if( a->retain_count != 0 || b->retain_count != 0)
-       return( 0);
+   a_used_len = a->used.length;
+   b_used_len = b->used.length;
 
-    // Try to join b into a by appending b's content at the back of a
-    // but only if a is not shared, otherwise not deemed worth it to
-    // do a COW for that
-    if( a->retain_count != 0)
-    {
-        size_t a_available_back = mulle_vm_page_get_available_back(a);
+   // Try to join b into a by appending b's content at the back of a
+   // but only if a is not shared, otherwise not deemed worth it to
+   // do a COW for that
+   if( ! mulle_vm_page_is_shared( a))
+   {
+      a_available_back = mulle_vm_page_get_available_back(a);
 
-        if (a_available_back < b_used_len)
-        {
-            // Attempt to move a's used data towards front (location 0) to increase back available space
-            size_t a_available_front = mulle_vm_page_get_available_front(a);
-            if ((a_available_front + a_available_back) >= b_used_len)
-            {
-                memmove(
-                    (char *)a->bytes,
-                    (char *)a->bytes + a->used.location,
-                    a_used_len);
-                a->used.location = 0;
-                a_available_back = mulle_vm_page_get_available_back(a);
-            }
-        }
+      if (a_available_back < b_used_len)
+      {
+          // Attempt to move a's used data towards front (location 0) to increase back available space
+          size_t a_available_front = mulle_vm_page_get_available_front(a);
+          if ((a_available_front + a_available_back) >= b_used_len)
+          {
+              memmove(
+                  (char *)a->bytes,
+                  (char *)a->bytes + a->used.location,
+                  a_used_len);
+              a->used.location = 0;
+              a_available_back = mulle_vm_page_get_available_back(a);
+          }
+      }
 
-        if (a_available_back >= b_used_len)
-        {
-            // Append b's content at back of a
-            memcpy(
-                (char *)a->bytes + a->used.location + a_used_len,
-                (char *)b->bytes + b->used.location,
-                b_used_len);
-            a->used.length += b_used_len;
-            return( -1);
-        }
-    }
+      if (a_available_back >= b_used_len)
+      {
+          // Append b's content at back of a
+          memcpy(
+              (char *)a->bytes + a->used.location + a_used_len,
+              (char *)b->bytes + b->used.location,
+              b_used_len);
+          a->used.length += b_used_len;
+          return( -1);
+      }
+   }
 
-    // Try to join a into b by prepending a's content in front of b
-    // but only if b is not shared, otherwise not deemed worth it to
-    // do a COW for that
-    if( b->retain_count != 0)
-    {
-        size_t b_available_front = mulle_vm_page_get_available_front(b);
+   // Try to join a into b by prepending a's content in front of b
+   // but only if b is not shared, otherwise not deemed worth it to
+   // do a COW for that
+   if( ! mulle_vm_page_is_shared( b))
+   {
+      b_available_front = mulle_vm_page_get_available_front(b);
 
-        if (b_available_front < a_used_len)
-        {
-            // Attempt to move b's used data towards back to create more front space is NOT allowed (would shift content order),
-            // so we attempt to move b's data towards front instead (to free back space) would not help prepending a's data at front;
-            // therefore, only moving b towards front (location 0) is allowed:
-            size_t b_available_back = mulle_vm_page_get_available_back(b);
-            if ((b_available_front + b_available_back) >= a_used_len)
-            {
-                memmove(
-                    (char *)b->bytes,
-                    (char *)b->bytes + b->used.location,
-                    b_used_len);
-                b->used.location = 0;
-                b_available_front = mulle_vm_page_get_available_front(b);
-            }
-        }
-
-        if (b_available_front >= a_used_len)
-        {
-            // Shift b's content to right to prepare space for a's content
+      if (b_available_front < a_used_len)
+      {
+         // Attempt to move b's used data towards back to create more front
+         // space is NOT allowed (would shift content order),
+         // so we attempt to move b's data towards front instead (to free
+         // back space) would not help prepending a's data at front;
+         // therefore, only moving b towards front (location 0) is allowed
+         b_available_back = mulle_vm_page_get_available_back(b);
+         if ((b_available_front + b_available_back) >= a_used_len)
+         {
             memmove(
-                (char *)b->bytes + b->used.location - a_used_len,
+                (char *)b->bytes,
                 (char *)b->bytes + b->used.location,
                 b_used_len);
-            // Copy a's content in front
-            memcpy(
-                (char *)b->bytes + b->used.location - a_used_len,
-                (char *)a->bytes + a->used.location,
-                a_used_len);
+            b->used.location = 0;
+            b_available_front = mulle_vm_page_get_available_front(b);
+         }
+      }
 
-            b->used.location -= a_used_len;
-            b->used.length   += a_used_len;
-            return( +1);
-        }
-    }
+      if( b_available_front >= a_used_len)
+      {
+         // Shift b's content to right to prepare space for a's content
+         memmove( (char *) b->bytes + b->used.location - a_used_len,
+                  (char *) b->bytes + b->used.location,
+                  b_used_len);
+         // Copy a's content in front
+         memcpy( (char *) b->bytes + b->used.location - a_used_len,
+                 (char *)a->bytes + a->used.location,
+                 a_used_len);
 
-    // No possible join without breaking order constraint
-    return( 0);
+         b->used.location -= a_used_len;
+         b->used.length   += a_used_len;
+         return( +1);
+      }
+   }
+
+   // No possible join without breaking order constraint
+   return( 0);
 }
 
 
