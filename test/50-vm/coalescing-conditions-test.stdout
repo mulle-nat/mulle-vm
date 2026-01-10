@@ -1,0 +1,29 @@
+=== Testing specific coalescing conditions ===
+Page size: 8 bytes
+
+=== Test 1: Predecessor coalescing - left_back_available >= node_front_occupied ===
+Before: 1 pages, 5 bytes
+After: 1 pages, 4 bytes
+AAAB
+
+=== Test 2: Predecessor coalescing - exact page size condition ===
+Before: 2 pages, 9 bytes
+After: 2 pages, 7 bytes
+AAAAAAB
+
+=== Test 3: Successor coalescing - right_front_available >= node_back_occupied ===
+Before: 1 pages, 5 bytes
+After: 1 pages, 4 bytes
+ABBB
+
+=== Test 4: Successor coalescing - exact page size condition ===
+Before: 2 pages, 9 bytes
+After: 2 pages, 8 bytes
+BBBBBBBB
+
+=== Test 5: Edge case - should NOT coalesce ===
+Before: 1 pages, 4 bytes
+After: 1 pages, 3 bytes
+ABB
+
+=== Coalescing conditions test completed ===

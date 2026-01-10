@@ -1,0 +1,9 @@
+Test 1: Predecessor coalescing
+Before: AAAABBBB
+After: AAABBBB
+Test 2: Successor coalescing
+Before: XXXXYYYY
+After: XXXXYYY
+Test 3: Empty page removal
+Before: ABC
+After: AC

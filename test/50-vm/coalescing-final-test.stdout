@@ -1,0 +1,19 @@
+=== Test 1: Predecessor coalescing ===
+Before: 1 pages, 8 bytes
+After: 1 pages, 6 bytes
+AABBBB
+
+=== Test 2: Successor coalescing ===
+Before: 2 pages, 10 bytes
+After: 2 pages, 8 bytes
+XXXXXXYY
+
+=== Test 3: Boundary conditions ===
+Before: 1 pages, 3 bytes
+After: 1 pages, 2 bytes
+AC
+
+=== Test 4: Empty page removal ===
+Before: 2 pages, 9 bytes
+After: 2 pages, 6 bytes
+AAACCC

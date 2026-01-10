@@ -14,28 +14,20 @@
    dependencies =
    (
       {
-         description="🇧🇿 Memory mapped file access";
+         description="🌋 Almagamated library of mulle-core + mulle-concurrent + mulle-c";
          domain="github";
-         name="mulle-mmap";
-         repo="mulle-mmap";
-         url="https://github.com/mulle-core/mulle-mmap";
+         name="mulle-core";
+         repo="mulle-core";
+         url="https://github.com/mulle-core/mulle-core";
          user="mulle-core";
       },
       {
-         description="🛄 Arrays, hashtables and a queue";
+         description="🧺 iovec compatiblity layer";
          domain="github";
-         name="mulle-container";
-         repo="mulle-container";
-         url="https://github.com/mulle-c/mulle-container";
-         user="mulle-c";
-      },
-      {
-         description="🔠 Cross-platform thread/mutex/tss/atomic operations in C";
-         domain="github";
-         name="mulle-thread";
-         repo="mulle-thread";
-         url="https://github.com/mulle-concurrent/mulle-thread";
-         user="mulle-concurrent";
+         name="mulle-iovec";
+         repo="mulle-iovec";
+         url="https://github.com/mulle-core/mulle-iovec";
+         user="mulle-core";
       }
    );
 }

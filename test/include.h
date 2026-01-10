@@ -3,10 +3,12 @@
 
 // THIS FILE WILL BE CLOBBERED BY mulle-sde test craft
 
+#include <backtrace.h>
+#include <backtrace-supported.h>
+
 #include <mintomic/mintomic.h>
 #include <mulle-aba/mulle-aba.h>
 #include <mulle-allocator/mulle-allocator.h>
-#include <mulle-atexit/mulle-atexit.h>
 #include <mulle-atinit/mulle-atinit.h>
 #include <mulle-buffer/mulle-buffer.h>
 #include <mulle-c11/mulle-c11.h>
@@ -25,6 +27,7 @@
 #include <mulle-mmap/mulle-mmap.h>
 #include <mulle-multififo/mulle-multififo.h>
 #include <mulle-rbtree/mulle-rbtree.h>
+#include <mulle-rbtree-debug/mulle-rbtree-debug.h>
 #include <mulle-regex/mulle-regex.h>
 #include <mulle-slug/mulle-slug.h>
 #include <mulle-sprintf/mulle-sprintf.h>

@@ -1,0 +1,6 @@
+=== Corrected Occupation Test ===
+pagesize = 8
+
+=== Edge Case Test ===
+Before deletion: 1 pages, 6 bytes
+After deletion: 1 pages, 4 bytes
