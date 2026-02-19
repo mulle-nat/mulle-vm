@@ -1,0 +1,30 @@
+Testing newline search with mulle_vm_memchr
+==========================================
+
+== Test Sequential Newline Search (reproducing mulle-editor issue) ==
+VM content (24 bytes): "Hello World
+Second Line
+"
+Hex dump: 48 65 6c 6c 6f 20 57 6f 72 6c 64 0a 53 65 63 6f 6e 64 20 4c 69 6e 65 0a 
+Positions: H@0 e@1 l@2 l@3 o@4  @5 W@6 o@7 r@8 l@9 d@10 \n@11 S@12 e@13 c@14 o@15 n@16 d@17  @18 L@19 i@20 n@21 e@22 \n@23 
+
+=== Sequential Search ===
+Line 1: line_start=0, search_range=[0,24], newline_pos=11
+  -> Line with newline, range=[0,12] (includes newline)
+Line 2: line_start=12, search_range=[12,12], newline_pos=23
+  -> Line with newline, range=[12,12] (includes newline)
+
+== Test Newline Search from File (like mulle-editor does) ==
+VM content (26 bytes): "Hello World
+Second Line
+"
+Hex dump: 48 65 6c 6c 6f 20 57 6f 72 6c 64 0d 0a 53 65 63 6f 6e 64 20 4c 69 6e 65 0d 0a 
+Positions: H@0 e@1 l@2 l@3 o@4  @5 W@6 o@7 r@8 l@9 d@10 @11 \n@12 S@13 e@14 c@15 o@16 n@17 d@18  @19 L@20 i@21 n@22 e@23 @24 \n@25 
+
+=== Sequential Search from File ===
+Line 1: line_start=0, search_range=[0,26], newline_pos=12
+  -> Line with newline, range=[0,13] (includes newline)
+Line 2: line_start=13, search_range=[13,13], newline_pos=25
+  -> Line with newline, range=[13,13] (includes newline)
+
+Debug tests completed.

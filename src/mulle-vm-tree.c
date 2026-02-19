@@ -2,7 +2,7 @@
 //  mulle-vm-tree.c
 //  mulle-vm
 //
-//  Copyright (c) <|YEAR|> Nat! - Mulle kybernetiK.
+//  Copyright (c) 2025 Nat! - Mulle kybernetiK.
 //  All rights reserved.
 //
 //
@@ -379,6 +379,7 @@ int   _mulle_vm_tree_remove_node( struct mulle_vm_tree *tree,
 
    rbnode = _mulle_vm_node_get_rbnode( node);
    _mulle_rbtree_remove_node( rb_tree, rbnode);
+   return( 0);
 }
 
 

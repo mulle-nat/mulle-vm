@@ -1,0 +1,20 @@
+=== Random Insert/Delete Stress Test ===
+Target size: 2097152 bytes (2 MB)
+
+--- Phase 1: Adding random strings ---
+17 pages, 1048575 bytes
+23 pages, 1468005 bytes
+33 pages, 2097152 bytes
+
+Final state after adding:
+33 pages, 2097152 bytes
+
+--- Phase 2: Removing random ranges ---
+29 pages, 1467991 bytes
+18 pages, 629144 bytes
+0 pages, 0 bytes
+
+Final state after removal:
+0 pages, 0 bytes
+
+=== Random insert/delete test completed ===

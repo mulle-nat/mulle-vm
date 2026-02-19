@@ -1,6 +1,8 @@
 #ifndef mulle_memmem_h__
 #define mulle_memmem_h__
 
+#include "include.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -29,16 +31,19 @@ struct mulle_memmem_state
 
 
 // Public API
+MULLE__VM_GLOBAL
 void   mulle_memmem_init( struct mulle_memmem_state *state,
                           const void *needle,
                           size_t needle_len);
 
+MULLE__VM_GLOBAL
 void   mulle_memmem_done( struct mulle_memmem_state *state);
 
 // Returns:
 //    mulle_not_found_e
 //    else: absolute offset where match was found
 // this is at the beginning of the needle
+MULLE__VM_GLOBAL
 size_t   mulle_memmem( const void *data,
                        size_t data_len,
                        struct mulle_memmem_state *state);
@@ -59,10 +64,12 @@ struct mulle_memrmem_state
 };
 
 
+MULLE__VM_GLOBAL
 void   mulle_memrmem_init( struct mulle_memrmem_state *state,
                          const void *needle,
                          size_t needle_len);
 
+MULLE__VM_GLOBAL
 void   mulle_memrmem_done( struct mulle_memrmem_state *state);
 
 
@@ -72,6 +79,7 @@ void   mulle_memrmem_done( struct mulle_memrmem_state *state);
 //    mulle_not_found_e
 //    else: absolute offset where match was found
 //    this is at the end of the needle
+MULLE__VM_GLOBAL
 size_t   mulle_memrmem( const void *data,
                         size_t data_len,
                         struct mulle_memrmem_state *state);

@@ -137,12 +137,6 @@ static inline size_t   round_up_to_pagesize( size_t size, size_t pagesize)
 }
 
 
-static inline size_t   round_down_to_pagesize( size_t size, size_t pagesize)
-{
-   return( (size / pagesize) * pagesize);
-}
-
-
 /**
  **
  ** COW

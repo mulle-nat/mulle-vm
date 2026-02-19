@@ -9,7 +9,7 @@
 
 
 /*
- *  (c) <|YEAR|> nat <|ORGANIZATION|>
+ *  (c) 2025 nat <|ORGANIZATION|>
  *
  *  version:  major, minor, patch
  */
@@ -181,6 +181,13 @@ typedef int   mulle_vm_walk_callback_t( struct mulle_data data,
  * @return Returns the last return value from the callback, or an error code
  *         if the walk fails before any callback is invoked
  */
+MULLE__VM_GLOBAL
+int  _mulle_vm_walk( struct mulle_vm *vm,
+                     struct mulle_range range,
+                     mulle_vm_walk_callback_t  *callback,
+                     void *userinfo,
+                     int direction);
+
 MULLE_C_NONNULL_THIRD
 static inline
 int  mulle_vm_walk( struct mulle_vm *vm,
@@ -188,11 +195,6 @@ int  mulle_vm_walk( struct mulle_vm *vm,
                     mulle_vm_walk_callback_t  *callback,
                     void *userinfo)
 {
-   int  _mulle_vm_walk( struct mulle_vm *vm,
-                        struct mulle_range range,
-                        mulle_vm_walk_callback_t  *callback,
-                        void *userinfo,
-                        int direction);
    if( ! vm)
       return( 0);
    return( _mulle_vm_walk( vm, range, callback, userinfo, +1));
@@ -220,12 +222,6 @@ int  mulle_vm_walk_reverse( struct mulle_vm *vm,
                             mulle_vm_walk_callback_t  *callback,
                             void *userinfo)
 {
-   int  _mulle_vm_walk( struct mulle_vm *vm,
-                        struct mulle_range range,
-                        mulle_vm_walk_callback_t  *callback,
-                        void *userinfo,
-                        int direction);
-
    if( ! vm)
       return( 0);
    return( _mulle_vm_walk( vm, range, callback, userinfo, -1));
@@ -256,14 +252,15 @@ static inline struct mulle_vm_page  *
 // (if not NULL), otherwise NULL.
 // Out-of-bounds yields NULL.
 //
+MULLE__VM_GLOBAL
+void *   _mulle_vm_io( struct mulle_vm      *vm,
+                       struct mulle_range   range,
+                       void                 *buffer,
+                       int                  write_flag);
+
 static inline const void *
    mulle_vm_read( struct mulle_vm *vm, struct mulle_range range, void *buffer)
 {
-   MULLE__VM_GLOBAL
-   void *   _mulle_vm_io( struct mulle_vm      *vm,
-                          struct mulle_range   range,
-                          void                 *buffer,
-                          int                  write_flag);
 
    if( ! vm || ! range.length)
       return( NULL);
@@ -279,11 +276,6 @@ static inline void *
                        struct mulle_range range,
                        void *buffer)
 {
-   MULLE__VM_GLOBAL
-   void *   _mulle_vm_io( struct mulle_vm      *vm,
-                          struct mulle_range   range,
-                          void                 *buffer,
-                          int                  write_flag);
    void   *result;
 
    if( ! vm || ! buffer || ! range.length)
@@ -299,12 +291,6 @@ static inline void *
 static inline void *
    mulle_vm_write( struct mulle_vm *vm, struct mulle_range range, void *buffer)
 {
-   MULLE__VM_GLOBAL
-   void *   _mulle_vm_io( struct mulle_vm      *vm,
-                          struct mulle_range   range,
-                          void                 *buffer,
-                          int                  write_flag);
-
    if( ! vm || ! buffer || ! range.length)
       return( NULL);
 
@@ -371,6 +357,7 @@ int  mulle_vm_copy( struct mulle_vm *dst,
 // delete range in source afterwards
 // this calling mulle_vm_copy and mulle_vm_delete in succession
 // dst and src must be different
+MULLE__VM_GLOBAL
 int   mulle_vm_cut( struct mulle_vm *dst,
                     struct mulle_vm *src,
                     struct mulle_range range);
@@ -378,6 +365,7 @@ int   mulle_vm_cut( struct mulle_vm *dst,
 // delete range in destination, then insert everything from src
 // there (sharing pages)
 // dst and src must be different
+MULLE__VM_GLOBAL
 int   mulle_vm_paste( struct mulle_vm *dst,
                       struct mulle_range range,
                       struct mulle_vm *src);

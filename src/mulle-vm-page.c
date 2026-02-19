@@ -2,7 +2,7 @@
 //  mulle-vm-page.c
 //  mulle-vm
 //
-//  Copyright (c) <|YEAR|> Nat! - Mulle kybernetiK.
+//  Copyright (c) 2025 Nat! - Mulle kybernetiK.
 //  All rights reserved.
 //
 //
@@ -138,7 +138,7 @@ static void   _mulle_vm_free_ospages_unlocked( void *mem, size_t size)
       if( rval)
       {
          // what to do ?
-         fprintf( stderr, "mulle-vm: page %p wrongly freed by mishaved thread ? (%d)\n", mem, rval);
+         fprintf( stderr, "mulle-vm: page %p wrongly freed by misbehaved thread ? (%d)\n", mem, rval);
 #ifdef DEBUG
          abort();
 #endif
@@ -158,7 +158,7 @@ static void   mulle_vm_free_freed_ospages_unlocked( void)
       if( rval)
       {
       // what to do ?
-         fprintf( stderr, "mulle-vm: page %p wrongly freed by mishaved thread ? (%d)\n",
+         fprintf( stderr, "mulle-vm: page %p wrongly freed by misbehaved thread ? (%d)\n",
                            page, rval);
 #ifdef DEBUG
          abort();

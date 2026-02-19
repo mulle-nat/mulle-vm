@@ -2,7 +2,7 @@
 //  mulle-vm-stdlib.c
 //  mulle-vm
 //
-//  Copyright (c) <|YEAR|> Nat! - Mulle kybernetiK.
+//  Copyright (c) 2025 Nat! - Mulle kybernetiK.
 //  All rights reserved.
 //
 //
@@ -45,15 +45,24 @@ struct mulle_vm;
 
 
 // Search for a character in mulle_vm range
+MULLE__VM_GLOBAL
 uintptr_t   mulle_vm_memchr( struct mulle_vm *vm, struct mulle_range range, int c);
+
+MULLE__VM_GLOBAL
 uintptr_t   mulle_vm_memrchr( struct mulle_vm *vm, struct mulle_range range, int c);
 
 // Search any of the matching characters in mulle_vm range
+MULLE__VM_GLOBAL
 uintptr_t   mulle_vm_memmatch( struct mulle_vm *vm, struct mulle_range range, const uint8_t match[256]);
+
+MULLE__VM_GLOBAL
 uintptr_t   mulle_vm_memrmatch( struct mulle_vm *vm, struct mulle_range range, const uint8_t match[256]);
 
 // Find the length of matching consecutive match characters occuring in mulle_vm range
+MULLE__VM_GLOBAL
 size_t   mulle_vm_memspn( struct mulle_vm *vm, struct mulle_range range, const uint8_t match[256]);
+
+MULLE__VM_GLOBAL
 size_t   mulle_vm_memrspn( struct mulle_vm *vm, struct mulle_range range, const uint8_t match[256]);
 
 #endif
