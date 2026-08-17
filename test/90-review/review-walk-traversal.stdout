@@ -1,0 +1,13 @@
+=== REVIEW: Walk Traversal Test ===
+
+Total VM length: 32
+Total pages: 4
+Walk last 4 bytes: result=0, callbacks=1, data=HHHH
+Walk first 4 bytes: result=0, callbacks=1, data=AAAA
+Walk middle 4 bytes: result=0, callbacks=1, data=EEEE
+Walk reverse last 4: result=0, callbacks=1, data=HHHH
+Walk reverse first 4: result=0, callbacks=1, data=AAAA
+
+CONFIRMED: Walk now uses tree search to start at correct node
+
+=== Walk Traversal Test Complete ===

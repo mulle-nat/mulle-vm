@@ -1,0 +1,10 @@
+=== REVIEW: File-Backed COW Bug Test ===
+
+File loaded successfully
+Page 0: retain_count=1, is_shared=1
+
+Total pages from file: 1
+
+NOT CONFIRMED: Pages are marked as shared (bug may be fixed)
+
+=== File-Backed COW Bug Test Complete ===

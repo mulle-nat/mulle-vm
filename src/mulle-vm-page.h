@@ -1,5 +1,5 @@
 //
-//  mulle-vm-page.c
+//  mulle-vm-page.h
 //  mulle-vm
 //
 //  Copyright (c) 2025 Nat! - Mulle kybernetiK.

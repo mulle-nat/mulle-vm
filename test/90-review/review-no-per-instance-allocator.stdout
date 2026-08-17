@@ -1,0 +1,11 @@
+=== REVIEW: No Per-Instance Allocator Test ===
+
+sizeof(mulle_vm_config): 16
+Fields in mulle_vm_config:
+  shutdown offset: 0
+  skew offset: 8
+
+Global pagesize: 8
+CONFIRMED: mulle_vm_get_pagesize() is a global function, not per-instance
+
+=== No Per-Instance Allocator Test Complete ===

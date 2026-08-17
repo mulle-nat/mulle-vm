@@ -1,3 +1,37 @@
+//
+//  mulle-vm.c
+//  mulle-vm
+//
+//  Copyright (c) 2025 Nat! - Mulle kybernetiK.
+//  All rights reserved.
+//
+//
+//  Redistribution and use in source and binary forms, with or without
+//  modification, are permitted provided that the following conditions are met:
+//
+//  Redistributions of source code must retain the above copyright notice, this
+//  list of conditions and the following disclaimer.
+//
+//  Redistributions in binary form must reproduce the above copyright notice,
+//  this list of conditions and the following disclaimer in the documentation
+//  and/or other materials provided with the distribution.
+//
+//  Neither the name of Mulle kybernetiK nor the names of its contributors
+//  may be used to endorse or promote products derived from this software
+//  without specific prior written permission.
+//
+//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+//  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+//  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+//  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+//  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+//  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+//  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+//  POSSIBILITY OF SUCH DAMAGE.
+//
 #include "include-private.h"
 
 #include "mulle-vm.h"
@@ -55,8 +89,6 @@ void   mulle_vm_done( struct mulle_vm *vm)
 {
    if( ! vm)
       return;
-
-   vm->config.cachesize = 0;
 
    mulle_vm_tree_done( &vm->tree);
 
@@ -966,8 +998,43 @@ void   *_mulle_vm_io( struct mulle_vm *vm,
       // For now, only support multi-page reads, not writes
       if( write_flag)
       {
-         errno = ENOSYS;
-         return( NULL);
+         // Multi-page write: copy data from buffer into each page (with COW)
+         bytes_copied    = 0;
+         bytes_remaining = range.length;
+         current_pos     = range.location;
+
+         while( bytes_remaining > 0)
+         {
+            // Find the page for current position
+            current_result = _mulle_vm_tree_search( &vm->tree, current_pos);
+            if( ! mulle_vm_tree_search_result_is_valid( current_result))
+            {
+               errno = EINVAL;
+               return( NULL);
+            }
+
+            current_page   = current_result.node->page;
+            current_offset = current_result.offset;
+
+            // COW if shared
+            current_page             = _mulle_vm_will_write_page( vm, current_page);
+            current_result.node->page = current_page;
+
+            // Calculate how much we can write into this page
+            available_in_page = current_page->used.length - current_offset;
+            to_copy           = (bytes_remaining < available_in_page) ? bytes_remaining : available_in_page;
+
+            // Copy data into this page
+            memcpy( (uint8_t *) current_page->bytes + current_page->used.location + current_offset,
+                    (uint8_t *) buffer + bytes_copied,
+                    to_copy);
+
+            bytes_copied    += to_copy;
+            bytes_remaining -= to_copy;
+            current_pos     += to_copy;
+         }
+
+         return( buffer);
       }
       
       // Implement simple multi-page read by copying data page by page
@@ -1085,14 +1152,20 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
 
    if( direction > 0)
    {
-      // Forward walk
-      current_vm_address = 0;
-      mulle_vm_for( vm, current_page)
+      // Forward walk: start at the node found by tree search (O(log N))
+      // instead of iterating from the beginning
+      struct mulle_vm_node   *node;
+      struct mulle_vm_page   *current_page;
+
+      current_vm_address = range.location - start_result.offset;
+      node               = start_result.node;
+
+      while( node)
       {
+         current_page = node->page;
+
          // Calculate the VM range for this node
          vm_range = mulle_range_make( current_vm_address, current_page->used.length);
-         if( ! mulle_range_is_valid( vm_range))
-            continue;
 
          // Find intersection with requested range
          intersection = mulle_range_intersection( vm_range, range);
@@ -1117,27 +1190,31 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
          // Stop if we've passed the end of the requested range
          if( current_vm_address >= mulle_range_get_max( range))
             break;
+
+         node = mulle_vm_tree_next_node( &vm->tree, node);
       }
    }
    else
    {
-      // Reverse walk
-      current_vm_address = vm_length;
-      mulle_vm_for_reverse( vm, current_page)
+      // Reverse walk: start at the node found by tree search (O(log N))
+      struct mulle_vm_node   *node;
+      struct mulle_vm_page   *current_page;
+
+      current_vm_address = mulle_range_get_last_location( range) - end_result.offset;
+      node               = end_result.node;
+
+      while( node)
       {
-         current_vm_address -= current_page->used.length;
+         current_page = node->page;
 
          // Calculate the VM range for this node
          vm_range = mulle_range_make( current_vm_address, current_page->used.length);
-         if( ! mulle_range_is_valid( vm_range))
-            continue;
 
          // Find intersection with requested range
          intersection = mulle_range_intersection( vm_range, range);
          if( intersection.length > 0)
          {
             // Calculate offset within the page
-            //size_t page_offset = intersection.location - current_vm_address;
             size_t page_offset = intersection.location - vm_range.location;
 
             // Create data structure for callback
@@ -1154,6 +1231,10 @@ int  _mulle_vm_walk( struct mulle_vm *vm,
          // Stop if we've passed the start of the requested range
          if( current_vm_address <= range.location)
             break;
+
+         node = mulle_vm_tree_previous_node( &vm->tree, node);
+         if( node)
+            current_vm_address -= node->page->used.length;
       }
    }
 

@@ -37,6 +37,14 @@
 #include "include-private.h"
 
 
+//
+// The page allocator is intentionally global and shared across all mulle_vm
+// instances. This design enables COW (copy-on-write) page sharing between
+// VMs — essential for efficient cross-thread copy/paste. A shared pool with
+// a mutex is faster than per-instance allocators falling back to mmap/munmap
+// syscalls. Lock contention is minimal because page-level allocation is
+// infrequent relative to intra-page edits, which are lock-free.
+//
 static struct
 {
    struct mulle_storage            vm_pages;
