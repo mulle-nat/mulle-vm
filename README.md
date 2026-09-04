@@ -25,6 +25,11 @@ it into a different `struct mulle_vm` in a different thread.
 
 
 
+
+## Documentation & Guides
+
+* [API Summary](asset/dox/api/toc)
+
 # Mulle VM API Reference
 
 The library version is defined as `MULLE__VM_VERSION` (major: 0, minor: 7, patch: 56).
@@ -365,8 +370,8 @@ Or if you really want to do it exhaustively:
 
 | Requirements                                 | Description
 |----------------------------------------------|-----------------------
-| [mulle-core](https://github.com/mulle-core/mulle-core)             | 🌋 Almagamated library of mulle-core + mulle-concurrent + mulle-c
-| [mulle-iovec](https://github.com/mulle-core/mulle-iovec)             | 🧺 iovec compatiblity layer
+| [mulle-core](https://github.com/mulle-core/mulle-core)             | 🌋 Amalgamated library of mulle-core + mulle-concurrent + mulle-c
+| [mulle-iovec](https://github.com/mulle-core/mulle-iovec)             | 🧺 cross-platform scatter/gather I/O for files and pipes (readv/writev emulation)
 
 #### Download & Install
 

@@ -91,7 +91,7 @@ int   main( void)
    // Add page1 "Hello" (5 bytes)
    page1 = mulle_vm_page_alloc();
    size_t len1 = strlen( data1);
-   void *memory1 = malloc( len1);
+   void *memory1 = mulle_malloc( len1);
    memcpy( memory1, data1, len1);
    mulle_vm_page_init( page1, memory1, mulle_range_make( 0, len1), len1);
    mulle_vm_tree_add_page( &tree, page1);
@@ -99,7 +99,7 @@ int   main( void)
    // Add page2 "World" (5 bytes) 
    page2 = mulle_vm_page_alloc();
    size_t len2 = strlen( data2);
-   void *memory2 = malloc( len2);
+   void *memory2 = mulle_malloc( len2);
    memcpy( memory2, data2, len2);
    mulle_vm_page_init( page2, memory2, mulle_range_make( 0, len2), len2);
    mulle_vm_tree_add_page( &tree, page2);
@@ -107,7 +107,7 @@ int   main( void)
    // Add page3 "!" (1 byte)
    page3 = mulle_vm_page_alloc();
    size_t len3 = strlen( data3);
-   void *memory3 = malloc( len3);
+   void *memory3 = mulle_malloc( len3);
    memcpy( memory3, data3, len3);
    mulle_vm_page_init( page3, memory3, mulle_range_make( 0, len3), len3);
    mulle_vm_tree_add_page( &tree, page3);
@@ -229,6 +229,9 @@ int   main( void)
    size_t length_before_reset = mulle_vm_tree_get_total_length( &tree);
    mulle_printf( "Length before reset: %zu\n", length_before_reset);
    
+   mulle_free( memory1);
+   mulle_free( memory2);
+   mulle_free( memory3);
    mulle_vm_tree_reset( &tree);
    
    size_t length_after_reset = mulle_vm_tree_get_total_length( &tree);

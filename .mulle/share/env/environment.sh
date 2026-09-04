@@ -9,7 +9,7 @@
 #
 if [ -z "${MULLE_VIRTUAL_ROOT}" ]
 then
-   MULLE_VIRTUAL_ROOT="`PATH=/bin:/usr/bin pwd -P`"
+   MULLE_VIRTUAL_ROOT="`PATH='/bin:/usr/bin' pwd -P`"
    echo "Using ${MULLE_VIRTUAL_ROOT} as MULLE_VIRTUAL_ROOT for \
 your convenience" >&2
    export MULLE_VIRTUAL_ROOT
@@ -18,18 +18,43 @@ fi
 if [ -z "${MULLE_VIRTUAL_ROOT_ID}" ]
 then
    #
-   # create an identifier that changes with the location, the project is in
-   # usefule for related directories, that are placed outside of the
+   # create an identifier that changes with the location. This is
+   # useful for related directories, that are placed outside of the
    # project like maybe KITCHEN_DIR
    #
-   MULLE_VIRTUAL_ROOT_ID="$(shasum -a 256 <<< "${MULLE_VIRTUAL_ROOT}")"
-   MULLE_VIRTUAL_ROOT_ID="${MULLE_VIRTUAL_ROOT_ID:1:12}"
+   function __tmp_r_fnv1a_32()
+   {
+      local i
+      local len
+
+      i=0
+      len="${#1}"
+
+      local hash
+      local value
+
+      hash=2166136261
+      while [ $i -lt $len ]
+      do
+         printf -v value "%u" "'${1:$i:1}"
+         hash=$(( ((hash ^ (value & 0xFF)) * 16777619) & 0xFFFFFFFF ))
+         i=$(( i + 1 ))
+      done
+
+      RVAL=${hash}
+   }
+
+   __tmp_r_fnv1a_32 "${MULLE_VIRTUAL_ROOT}"
+   printf -v MULLE_VIRTUAL_ROOT_ID "%08x" "${RVAL}"
    export MULLE_VIRTUAL_ROOT_ID
+
+   unset -f __tmp_r_fnv1a_32
+   unset RVAL
 fi
 
 if [ -z "${MULLE_UNAME}" ]
 then
-   MULLE_UNAME="`PATH=/bin:/usr/bin uname -s 2> /dev/null | tr '[:upper:]' '[:lower:]'`"
+   MULLE_UNAME="`PATH='/bin:/usr/bin' uname -s 2> /dev/null | tr '[:upper:]' '[:lower:]'`"
    MULLE_UNAME="${MULLE_UNAME:-unknown}"
    echo "Using ${MULLE_UNAME} as MULLE_UNAME for your convenience" >&2
    export MULLE_UNAME
@@ -48,14 +73,14 @@ case "${MULLE_SHELL_MODE}" in
       #
       # Set PS1 so that we can see, that we are in a mulle-env
       #
-      envname="`PATH=/bin:/usr/bin basename -- "${MULLE_VIRTUAL_ROOT}"`"
+      envname="`PATH='/bin:/usr/bin' basename -- "${MULLE_VIRTUAL_ROOT}"`"
 
       case "${PS1}" in
          *\\h\[*)
          ;;
 
          *\\h*)
-            PS1="$( PATH=/bin:/usr/bin sed 's/\\h/\\h\['${envname}'\]/' <<< "${PS1}" )"
+            PS1="$( PATH='/bin:/usr/bin' sed 's/\\h/\\h\['${envname}'\]/' <<< "${PS1}" )"
          ;;
 
          *)
@@ -92,7 +117,7 @@ case "${MULLE_SHELL_MODE}" in
       unset filename
 
       vardir="${MULLE_VIRTUAL_ROOT}/.mulle/var/${MULLE_HOSTNAME:-unknown-host}"
-      [ -d "${vardir}" ] || PATH=/bin:/usr/bin mkdir -p "${vardir}"
+      [ -d "${vardir}" ] || PATH='/bin:/usr/bin' mkdir -p "${vardir}"
 
       HISTFILE="${vardir}/bash_history"
       export HISTFILE
@@ -102,17 +127,38 @@ case "${MULLE_SHELL_MODE}" in
       #
       # show motd, if any
       #
+      # The motd file has ANSI color codes baked in. Strip them when
+      # NO_COLOR is set (https://no-color.org/) or MULLE_NO_COLOR='YES',
+      # otherwise cat verbatim.
+      #
       if [ -z "${NO_MOTD}" ]
       then
+         motdfile=""
          if [ -f "${MULLE_VIRTUAL_ROOT}/.mulle/etc/env/motd" ]
          then
-            cat "${MULLE_VIRTUAL_ROOT}/.mulle/etc/env/motd"
+            motdfile="${MULLE_VIRTUAL_ROOT}/.mulle/etc/env/motd"
          else
             if [ -f "${MULLE_VIRTUAL_ROOT}/.mulle/share/env/motd" ]
             then
-               cat "${MULLE_VIRTUAL_ROOT}/.mulle/share/env/motd"
+               motdfile="${MULLE_VIRTUAL_ROOT}/.mulle/share/env/motd"
             fi
          fi
+
+         if [ ! -z "${motdfile}" ]
+         then
+            if [ -z "${NO_COLOR:-}" ] && [ "${MULLE_NO_COLOR:-}" != 'YES' ]
+            then
+               cat "${motdfile}"
+            else
+               # strip ANSI SGR color codes (printf -v avoids a subshell,
+               # and this rc is already bash/zsh, see printf -v use above)
+               printf -v mulle_esc '\033'
+               sed "s/${mulle_esc}\[[0-9;]*m//g" "${motdfile}"
+               unset mulle_esc
+            fi
+         fi
+
+         unset motdfile
       fi
    ;;
 esac

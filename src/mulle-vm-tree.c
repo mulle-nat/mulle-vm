@@ -62,7 +62,7 @@
 // The mulle_vm_node structure itself is part of the node extra data,
 // so we only need to manage the page within it
 //
-static void   *mulle_vm_node_retain( struct mulle_container_valuecallback *callback,
+static void   *mulle_vm_node_retain( const struct mulle_container_valuecallback *callback,
                                      void *p,
                                      struct mulle_allocator *allocator)
 {
@@ -73,7 +73,7 @@ static void   *mulle_vm_node_retain( struct mulle_container_valuecallback *callb
 }
 
 
-static void   mulle_vm_node_release( struct mulle_container_valuecallback *callback,
+static void   mulle_vm_node_release( const struct mulle_container_valuecallback *callback,
                                      void *p,
                                      struct mulle_allocator *allocator)
 {
@@ -84,7 +84,7 @@ static void   mulle_vm_node_release( struct mulle_container_valuecallback *callb
 
 
 
-static char *   mulle_vm_node_describe( struct mulle_container_valuecallback *callback,
+static char *   mulle_vm_node_describe( const struct mulle_container_valuecallback *callback,
                                         void *p,
                                         struct mulle_allocator **p_allocator)
 {

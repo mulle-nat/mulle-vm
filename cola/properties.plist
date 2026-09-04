@@ -14,7 +14,7 @@
    dependencies =
    (
       {
-         description="🌋 Almagamated library of mulle-core + mulle-concurrent + mulle-c";
+         description="🌋 Amalgamated library of mulle-core + mulle-concurrent + mulle-c";
          domain="github";
          name="mulle-core";
          repo="mulle-core";
@@ -22,7 +22,7 @@
          user="mulle-core";
       },
       {
-         description="🧺 iovec compatiblity layer";
+         description="🧺 cross-platform scatter/gather I/O for files and pipes (readv/writev emulation)";
          domain="github";
          name="mulle-iovec";
          repo="mulle-iovec";
