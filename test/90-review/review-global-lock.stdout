@@ -6,8 +6,7 @@ Pagesize after vm2 init: 8
 
 CONFIRMED: Page allocator is global (same pagesize for all)
 
-sizeof(struct mulle_vm): 240
-Contains: tree + config (no allocator pointer)
+struct mulle_vm holds tree + config (no allocator pointer)
 Both VMs successfully allocated pages from global pool
 CONFIRMED: Global allocator with global lock
 

@@ -51,8 +51,7 @@ int   main( void)
       mulle_printf( "\nNOT CONFIRMED: Pagesizes differ unexpectedly\n");
 
    // The struct mulle_vm itself has no allocator field
-   mulle_printf( "\nsizeof(struct mulle_vm): %lu\n", (unsigned long) sizeof( struct mulle_vm));
-   mulle_printf( "Contains: tree + config (no allocator pointer)\n");
+   mulle_printf( "\nstruct mulle_vm holds tree + config (no allocator pointer)\n");
 
    // Both VMs allocate from the same pool - insert into both
    mulle_vm_insert( &vm1, mulle_range_make( 0, 4), "aaaa");

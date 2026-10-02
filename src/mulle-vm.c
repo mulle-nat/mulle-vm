@@ -443,6 +443,7 @@ void   _mulle_vm_try_coalesce( struct mulle_vm *vm,
                                                    &((char *) page->bytes)[ copy_range.location],
                                                    copy_range.length);
          assert( ! rval);
+         (void) rval;
 
          _mulle__rbtree_mark_node_as_dirty( &vm->tree.rbtree.base,
                                             _mulle_vm_node_get_rbnode( right));
@@ -475,9 +476,7 @@ static void   _mulle_vm_insert_into_large_enough_node( struct mulle_vm *vm,
 {
    struct mulle_rbnode   *rbnode;
    struct mulle_vm_page  *page;
-#ifndef NDEBUG
    int                   rval;
-#endif
 
    if( ! length)
       return;
@@ -495,6 +494,7 @@ static void   _mulle_vm_insert_into_large_enough_node( struct mulle_vm *vm,
 
    rval = _mulle_vm_page_insert_bytes( page, offset, bytes, length);
    assert( rval == 0);
+   (void) rval;
    rbnode = _mulle_vm_node_get_rbnode( node);
    _mulle__rbtree_mark_node_as_dirty( &vm->tree.rbtree.base, rbnode);
    _mulle_rbtree_walk_dirty( &vm->tree.rbtree);
@@ -847,8 +847,10 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
    for( node = middle_node; node && node != start_result.node; node = prev_node)
    {
       prev_node = mulle_vm_tree_previous_node( &vm->tree, node);
+#ifdef DEBUG
       if( mulle_vm_delete_attempt == mulle_vm_delete_break)
          _mulle__rbtree_enable_marking( &vm->tree.rbtree.base);
+#endif
 
       mulle_vm_tree_remove_node( &vm->tree,node);
 #if 0
