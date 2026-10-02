@@ -1,0 +1,12 @@
+=== REVIEW: Middle Insert Into Shared Page Test ===
+
+src content: "Hello World\nSecond Line\n"
+copy (sharing) result: 0
+dst page shared after copy: YES
+mid insert into shared page: 0 (errno=0)
+dst length: 33 (expected 33)
+dst content: "Hello INSERTED World\nSecond Line\n"
+src after insert: "Hello World\nSecond Line\n"
+CONFIRMED: middle insert into a shared page works, source unchanged
+
+=== Middle Insert Into Shared Page Test Complete ===

@@ -84,7 +84,7 @@ int   mulle_vm_writev_contents( struct mulle_vm *vm, int fd)
    unsigned int   i;
    int            rval;
 
-   n = _mulle__rbtree_get_count( (struct mulle__rbtree *) &vm->tree);
+   n = _mulle__rbtree_get_count( &vm->tree.rbtree.base);
    mulle_alloca_do( ios, struct mulle_iovec, n)
    {
       i = 0;

@@ -114,7 +114,7 @@ static inline void   mulle_vm_assert( struct mulle_vm *vm)
    struct mulle_rbnode   *rbnode;
    char                  *complaint;
 
-   complaint = mulle__rbtree_validate( (struct mulle__rbtree *) &vm->tree.rbtree);
+   complaint = mulle__rbtree_validate( &vm->tree.rbtree.base);
    if( complaint)
    {
       mulle_fprintf( stderr, "tree corrupted: %s\n", complaint);
@@ -303,7 +303,7 @@ struct mulle_vm_node  *
 
    // Mark the node as dirty and recalculate tree totals
    rbnode = _mulle_vm_node_get_rbnode( result.node);
-   _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
+   _mulle__rbtree_mark_node_as_dirty( &vm->tree.rbtree.base, rbnode);
 
    // Insert new tail page right after the original page in the VM
    node = mulle_vm_tree_insert_page_after_node( &vm->tree, tail, result.node);
@@ -311,7 +311,7 @@ struct mulle_vm_node  *
    // now its retained by the tree so release it here
    mulle_vm_page_release( tail);
 
-   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+   _mulle_rbtree_walk_dirty( &vm->tree.rbtree);
 
    // Return pointer to the newly inserted tail page
    return( node);
@@ -395,7 +395,7 @@ void   _mulle_vm_try_coalesce( struct mulle_vm *vm,
                                                    copy_range.length);
          assert( ! rval);
          // and mark as dirty
-         _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree,
+         _mulle__rbtree_mark_node_as_dirty( &vm->tree.rbtree.base,
                                             _mulle_vm_node_get_rbnode( left));
 
          page                 = _mulle_vm_will_write_page( vm, page);
@@ -404,7 +404,7 @@ void   _mulle_vm_try_coalesce( struct mulle_vm *vm,
          assert( page->used.length >= copy_range.length);
          page->used.location += copy_range.length;
          page->used.length   -= copy_range.length;
-         _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree,
+         _mulle__rbtree_mark_node_as_dirty( &vm->tree.rbtree.base,
                                             _mulle_vm_node_get_rbnode( node));
 
          if( ! page->used.length)
@@ -444,7 +444,7 @@ void   _mulle_vm_try_coalesce( struct mulle_vm *vm,
                                                    copy_range.length);
          assert( ! rval);
 
-         _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree,
+         _mulle__rbtree_mark_node_as_dirty( &vm->tree.rbtree.base,
                                             _mulle_vm_node_get_rbnode( right));
 
          page                 = _mulle_vm_will_write_page( vm, page);
@@ -452,7 +452,7 @@ void   _mulle_vm_try_coalesce( struct mulle_vm *vm,
 
          assert( page->used.length >= copy_range.length);
          page->used.length   -= copy_range.length;
-         _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree,
+         _mulle__rbtree_mark_node_as_dirty( &vm->tree.rbtree.base,
                                             _mulle_vm_node_get_rbnode( node));
 
          if( ! page->used.length)
@@ -484,11 +484,20 @@ static void   _mulle_vm_insert_into_large_enough_node( struct mulle_vm *vm,
 
    page = _mulle_vm_node_get_page( node);
    page = _mulle_vm_will_write_page( vm, page);
+   //
+   // _mulle_vm_will_write_page releases the page it copied from and returns a
+   // new one when the node's page was shared. That new page has to go back
+   // into the node: without this the bytes are written into a page no one
+   // references, the node keeps the released one (so the insert is silently
+   // lost and the length never changes) and the copy leaks.
+   //
+   node->page = page;
+
    rval = _mulle_vm_page_insert_bytes( page, offset, bytes, length);
    assert( rval == 0);
    rbnode = _mulle_vm_node_get_rbnode( node);
-   _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
-   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+   _mulle__rbtree_mark_node_as_dirty( &vm->tree.rbtree.base, rbnode);
+   _mulle_rbtree_walk_dirty( &vm->tree.rbtree);
 }
 
 
@@ -563,6 +572,16 @@ int   _mulle_vm_insert( struct mulle_vm *vm,
    if( offset && offset < page->used.length)
    {
       tail_node = _mulle_vm_split( vm, result, offset);
+
+      //
+      // _mulle_vm_split calls _mulle_vm_will_write_page, which may have
+      // copied the page on write and only updated result.node->page. The
+      // `page` we cached above is stale in that case, and the code below
+      // uses page->used.length as the insert offset - which would then be
+      // the pre-split length, i.e. beyond the end of the current page
+      // (ERANGE / assert in _mulle_vm_page_insert_bytes).
+      //
+      page = mulle_vm_tree_search_result_get_page( result);
    }
    else
    {
@@ -601,7 +620,7 @@ int   _mulle_vm_insert( struct mulle_vm *vm,
             node = mulle_vm_tree_insert_page_before_node( &vm->tree, insert_page, tail_node);
             mulle_vm_page_release( insert_page);
             _mulle_vm_try_coalesce( vm, node);   // why not ...
-            _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+            _mulle_rbtree_walk_dirty( &vm->tree.rbtree);
             return( 0);
          }
          page = _mulle_vm_node_get_page( node);
@@ -655,7 +674,7 @@ int   _mulle_vm_insert( struct mulle_vm *vm,
    mulle_vm_page_release( insert_page);
 
    _mulle_vm_try_coalesce( vm, insert_node);
-   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+   _mulle_rbtree_walk_dirty( &vm->tree.rbtree);
 
    return( 0);
 }
@@ -693,7 +712,7 @@ void  mulle_vm_tree_write_dot_file( char *filename,
 
    fp = fopen( filename, "w");
    mulle__rbtree_node_dot_fprintf( fp,
-                                   (struct mulle__rbtree *) &tree->rbtree,
+                                   &tree->rbtree.base,
                                    print_value_fn);
    fclose( fp);
 }
@@ -707,7 +726,7 @@ static inline void   mulle_vm_mark_node_as_dirty( struct mulle_vm *vm,
    if( node)
    {
       rbnode = _mulle_vm_node_get_rbnode( node);
-      _mulle__rbtree_mark_node_as_dirty( (struct mulle__rbtree *) &vm->tree, rbnode);
+      _mulle__rbtree_mark_node_as_dirty( &vm->tree.rbtree.base, rbnode);
    }
 }
 
@@ -789,7 +808,7 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
 
          /* coalesce if small */
          _mulle_vm_try_coalesce( vm, start_result.node);
-         _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+         _mulle_rbtree_walk_dirty( &vm->tree.rbtree);
       }
 
       mulle_vm_assert( vm);
@@ -820,7 +839,7 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
       page->used.length   -= end_offset + 1;
       mulle_vm_mark_node_as_dirty( vm, node);
 
-      _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+      _mulle_rbtree_walk_dirty( &vm->tree.rbtree);
    }
    mulle_vm_assert( vm);
 
@@ -829,7 +848,7 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
    {
       prev_node = mulle_vm_tree_previous_node( &vm->tree, node);
       if( mulle_vm_delete_attempt == mulle_vm_delete_break)
-         _mulle__rbtree_enable_marking( (struct mulle__rbtree *) &vm->tree.rbtree);
+         _mulle__rbtree_enable_marking( &vm->tree.rbtree.base);
 
       mulle_vm_tree_remove_node( &vm->tree,node);
 #if 0
@@ -840,8 +859,8 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
          {
             struct mulle_allocator   *allocator;
             void                     *value;
-            struct mulle_rbtree      *rb_tree  = (struct mulle_rbtree *) &vm->tree;
-            struct mulle__rbtree     *rb__tree = (struct mulle__rbtree *) &vm->tree;
+            struct mulle_rbtree      *rb_tree  = &vm->tree.rbtree;
+            struct mulle__rbtree     *rb__tree = &vm->tree.rbtree.base;
 
             value     = _mulle__rbtree_get_node_value( rb__tree, rbnode);
             allocator = _mulle_rbtree_get_allocator( rb_tree);
@@ -880,7 +899,7 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
       page->used.length = start_offset;
       mulle_vm_mark_node_as_dirty( vm, node);
 
-      _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+      _mulle_rbtree_walk_dirty( &vm->tree.rbtree);
    }
    mulle_vm_assert( vm);
 
@@ -893,7 +912,7 @@ void   _mulle_vm_delete( struct mulle_vm *vm,
    if( start_result.node)
       _mulle_vm_try_coalesce( vm, start_result.node);
 
-   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) &vm->tree);
+   _mulle_rbtree_walk_dirty( &vm->tree.rbtree);
 
    mulle_vm_assert( vm);
    return;

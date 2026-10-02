@@ -1,0 +1,5 @@
+aliasing-vm-shared: identity OK
+aliasing-vm-shared: copy OK
+aliasing-vm-shared: cut OK
+aliasing-vm-shared: paste OK
+aliasing-vm-shared: OK

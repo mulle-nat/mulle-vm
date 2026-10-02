@@ -1,0 +1,5 @@
+aliasing-base: identity OK
+aliasing-base: store/load OK
+aliasing-base: accessor OK
+aliasing-base: live tree OK
+aliasing-base: OK

@@ -1,0 +1,5 @@
+aliasing-vm: identity OK
+aliasing-vm: store/load OK
+aliasing-vm: accessor OK
+aliasing-vm: live VM OK
+aliasing-vm: OK

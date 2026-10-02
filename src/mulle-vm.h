@@ -47,7 +47,7 @@
  *
  *  version:  major, minor, patch
  */
-#define MULLE__VM_VERSION  ((0UL << 20) | (7 << 8) | 56)
+#define MULLE__VM_VERSION  ((0UL << 20) | (7 << 8) | 57)
 
 
 static inline unsigned int   mulle_vm_get_version_major( void)

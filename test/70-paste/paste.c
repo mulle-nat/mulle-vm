@@ -17,7 +17,7 @@ static void show_vm_info(struct mulle_vm *vm, const char *name)
    info = mulle_vm_get_statistics(vm);
    total_pages = info.page_size / mulle_vm_get_pagesize();
    mulle_fprintf(stderr, "%s: %lu vm pages %lu os pages, %lu bytes\n", name,
-          (long) _mulle__rbtree_get_count( (struct mulle__rbtree *) &vm->tree), total_pages, info.vm_size);
+          (long) _mulle__rbtree_get_count( &vm->tree.rbtree.base), total_pages, info.vm_size);
    
    // Show detailed page information
    i = 0;

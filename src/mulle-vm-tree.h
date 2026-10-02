@@ -104,7 +104,7 @@ static inline void  mulle_vm_tree_done( struct mulle_vm_tree *tree)
 static inline struct mulle_allocator *
    mulle_vm_tree_get_allocator( struct mulle_vm_tree *tree)
 {
-   return( tree ? mulle_rbtree_get_allocator( (struct mulle_rbtree *) &tree->rbtree) : NULL);
+   return( tree ? mulle_rbtree_get_allocator( &tree->rbtree) : NULL);
 }
 
 
@@ -136,7 +136,7 @@ struct mulle_vm_node *   mulle_vm_tree_add_page( struct mulle_vm_tree *tree,
 
 
 MULLE__VM_GLOBAL
-struct mulle_vm_node *   _mulle_vm_tree_insert_page_after_node( struct mulle_rbtree *tree,
+struct mulle_vm_node *   _mulle_vm_tree_insert_page_after_node( struct mulle_vm_tree *tree,
                                                                 struct mulle_vm_page *page,
                                                                 struct mulle_vm_node *node);
 
@@ -147,13 +147,13 @@ static inline struct mulle_vm_node *
 {
    if( ! tree)
       return( NULL);
-   return( _mulle_vm_tree_insert_page_after_node( (struct mulle_rbtree *) tree, page, node));
+   return( _mulle_vm_tree_insert_page_after_node( tree, page, node));
 }
 
 
 MULLE__VM_GLOBAL
 struct mulle_vm_node *
-   _mulle_vm_tree_insert_page_before_node( struct mulle_rbtree *tree,
+   _mulle_vm_tree_insert_page_before_node( struct mulle_vm_tree *tree,
                                            struct mulle_vm_page *page,
                                            struct mulle_vm_node *node);
 
@@ -164,7 +164,7 @@ static inline struct mulle_vm_node *
 {
    if( ! tree)
       return( NULL);
-   return( _mulle_vm_tree_insert_page_before_node( (struct mulle_rbtree *) tree, page, node));
+   return( _mulle_vm_tree_insert_page_before_node( tree, page, node));
 }
 
 
@@ -316,7 +316,7 @@ static inline struct mulle_vm_node *
    mulle_vm_tree_previous_node( struct mulle_vm_tree *tree,
                                 struct mulle_vm_node *node)
 {
-   struct mulle__rbtree   *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle__rbtree   *rb__tree = &tree->rbtree.base;
    struct mulle_rbnode    *rbnode;
    struct mulle_rbnode    *prev_rbnode;
    struct mulle_vm_node   *previous;
@@ -338,7 +338,7 @@ static inline struct mulle_vm_node *
    mulle_vm_tree_next_node( struct mulle_vm_tree *tree,
                             struct mulle_vm_node *node)
 {
-   struct mulle__rbtree   *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle__rbtree   *rb__tree = &tree->rbtree.base;
    struct mulle_rbnode    *rbnode;
    struct mulle_rbnode    *next_rbnode;
    struct mulle_vm_node   *next;
@@ -386,7 +386,7 @@ void   mulle_vm_tree_print( struct mulle_vm_tree *tree);
 static inline struct mulle_vm_treeenumerator
    mulle_vm_tree_enumerate( struct mulle_vm_tree *tree)
 {
-   return( mulle_rbtree_enumerate( (struct mulle_rbtree *) tree));
+   return( mulle_rbtree_enumerate( &tree->rbtree));
 }
 
 
@@ -422,7 +422,7 @@ static inline void
 static inline struct mulle_vm_treereverseenumerator
    mulle_vm_tree_reverseenumerate( struct mulle_vm_tree *tree)
 {
-   return( mulle_rbtree_reverseenumerate( (struct mulle_rbtree *) tree));
+   return( mulle_rbtree_reverseenumerate( &tree->rbtree));
 }
 
 

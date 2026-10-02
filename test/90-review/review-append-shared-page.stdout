@@ -1,0 +1,15 @@
+=== REVIEW: Append Into Shared Page Test ===
+
+src content: "abcdef"
+copy (sharing) result: 0
+dst page shared after copy: YES
+append into shared page: 0 (errno=0)
+dst length: 9 (expected 9)
+dst content: "abcdefghi"
+src after append: "abcdef"
+append again into shared page: 0 (errno=0)
+dst length: 12 (expected 12)
+dst content: "abcdefghijkl"
+CONFIRMED: append into a shared page works, source unchanged
+
+=== Append Into Shared Page Test Complete ===

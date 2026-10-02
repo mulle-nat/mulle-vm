@@ -146,7 +146,7 @@ static int   mulle_vm_node_compare( void *a, void *b)
 size_t  mulle_vm_tree_search_node_total( struct mulle_vm_tree *tree,
                                          struct mulle_vm_node *node)
 {
-   struct mulle__rbtree   *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle__rbtree   *rb__tree = &tree->rbtree.base;
    struct mulle_vm_node   *left;
    struct mulle_vm_node   *right;
    struct mulle_rbnode    *rbnode;
@@ -200,9 +200,9 @@ void  mulle_vm_tree_init( struct mulle_vm_tree *tree,
       .options    = mulle_rbtree_option_use_extra | mulle_rbtree_option_use_dirty
    };
 
-   mulle_rbtree_init_with_config( (struct mulle_rbtree *) tree, &config, allocator);
+   mulle_rbtree_init_with_config( &tree->rbtree, &config, allocator);
 
-   if( _mulle__rbtree_get_extra_size( (struct mulle__rbtree *) tree) < sizeof(struct mulle_vm_node))
+   if( _mulle__rbtree_get_extra_size( &tree->rbtree.base) < sizeof(struct mulle_vm_node))
      abort();
 }
 
@@ -218,13 +218,13 @@ size_t   mulle_vm_tree_get_total_length( struct mulle_vm_tree *tree)
    if( ! tree)
       return( 0);
 
-   nil  = _mulle__rbtree_get_nil_node( (struct mulle__rbtree *) tree);
-   root = _mulle__rbtree_get_root_node( (struct mulle__rbtree *) tree);
+   nil  = _mulle__rbtree_get_nil_node( &tree->rbtree.base);
+   root = _mulle__rbtree_get_root_node( &tree->rbtree.base);
 
    if( root == nil)
       return( 0);
 
-   node = _mulle__rbtree_get_node_value( (struct mulle__rbtree *) tree, root);
+   node = _mulle__rbtree_get_node_value( &tree->rbtree.base, root);
    return( node->total);
 }
 
@@ -235,7 +235,7 @@ char  *mulle_vm_tree_validate_total_length( struct mulle_vm_tree *tree)
    size_t                 total;
 
    total = 0;
-   mulle_rbtree_for( (struct mulle_rbtree *) tree, node)
+   mulle_rbtree_for( &tree->rbtree, node)
    {
       if( mulle_vm_tree_search_node_total( tree, node) != node->total)
          return( "node total is wrong");
@@ -253,13 +253,13 @@ char  *mulle_vm_tree_validate( struct mulle_vm_tree *tree)
 {
    char   *err;
 
-   assert( ! _mulle__rbtree_is_dirty( (struct mulle__rbtree *) tree));
+   assert( ! _mulle__rbtree_is_dirty( &tree->rbtree.base));
 
-   err = mulle__rbtree_validate( (struct mulle__rbtree *) tree);
+   err = mulle__rbtree_validate( &tree->rbtree.base);
    if( err)
       return( err);
 
-   return( mulle_vm_tree_validate_total_length( (struct mulle_vm_tree *) tree));
+   return( mulle_vm_tree_validate_total_length( tree));
 }
 
 
@@ -277,8 +277,8 @@ struct mulle_vm_node *
    struct mulle_rbnode      *rbnode;
    struct mulle_vm_node     *node;
    struct mulle_allocator   *allocator;
-   struct mulle_rbtree      *rb_tree  = (struct mulle_rbtree *) tree;
-   struct mulle__rbtree     *rb__tree = (struct mulle__rbtree *) rb_tree;
+   struct mulle_rbtree      *rb_tree  = &tree->rbtree;
+   struct mulle__rbtree     *rb__tree = &rb_tree->base;
    void                     *value;
 
    extra.page  = page;
@@ -303,7 +303,7 @@ struct mulle_vm_node *    _mulle_vm_tree_add_page( struct mulle_vm_tree *tree, s
 {
    struct mulle_vm_node     *node;
    struct mulle_rbnode      *rbnode;
-   struct mulle__rbtree     *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle__rbtree     *rb__tree = &tree->rbtree.base;
 
    node   = mulle_vm_tree_new_node( tree, page);
    rbnode = _mulle_vm_node_get_rbnode( node);
@@ -311,61 +311,61 @@ struct mulle_vm_node *    _mulle_vm_tree_add_page( struct mulle_vm_tree *tree, s
    _mulle__rbtree_insert_node( rb__tree,
                                rbnode,
                                always_right_comparison);
-   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) tree);
+   _mulle_rbtree_walk_dirty( &tree->rbtree);
 #ifdef DEBUG_HARDCORE
-   assert( ! mulle_vm_tree_validate( (struct mulle_rbtree *) tree));
+   assert( ! mulle_vm_tree_validate( tree));
 #endif
    return( node);
 }
 
 
 
-struct mulle_vm_node *   _mulle_vm_tree_insert_page_before_node( struct mulle_rbtree *tree,
+struct mulle_vm_node *   _mulle_vm_tree_insert_page_before_node( struct mulle_vm_tree *tree,
                                                                  struct mulle_vm_page *page,
                                                                  struct mulle_vm_node *node)
 {
    struct mulle_vm_node   *new_node;
    struct mulle_rbnode    *rbnode;
    struct mulle_rbnode    *new_rbnode;
-   struct mulle__rbtree   *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle__rbtree   *rb__tree = &tree->rbtree.base;
 
    rbnode     = _mulle_vm_node_get_rbnode( node);
 
-   new_node   = mulle_vm_tree_new_node( (struct mulle_vm_tree *) tree, page);
+   new_node   = mulle_vm_tree_new_node( tree, page);
    new_rbnode = _mulle_vm_node_get_rbnode( new_node);
    // this can't fail with an return code (only raise)
    _mulle__rbtree_insert_node_before_node( rb__tree,
                                            new_rbnode,
                                            rbnode);
-   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) tree);
+   _mulle_rbtree_walk_dirty( &tree->rbtree);
 #ifdef DEBUG_HARDCORE
-   assert( ! mulle_vm_tree_validate( (struct mulle_rbtree *) tree));
+   assert( ! mulle_vm_tree_validate( tree));
 #endif
    return( new_node);
 }
 
 
 
-struct mulle_vm_node *   _mulle_vm_tree_insert_page_after_node( struct mulle_rbtree *tree,
+struct mulle_vm_node *   _mulle_vm_tree_insert_page_after_node( struct mulle_vm_tree *tree,
                                                                 struct mulle_vm_page *page,
                                                                 struct mulle_vm_node *node)
 {
    struct mulle_vm_node   *new_node;
    struct mulle_rbnode    *rbnode;
    struct mulle_rbnode    *new_rbnode;
-   struct mulle__rbtree   *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle__rbtree   *rb__tree = &tree->rbtree.base;
 
    rbnode     = _mulle_vm_node_get_rbnode( node);
 
-   new_node   = mulle_vm_tree_new_node( (struct mulle_vm_tree *) tree, page);
+   new_node   = mulle_vm_tree_new_node( tree, page);
    new_rbnode = _mulle_vm_node_get_rbnode( new_node);
    // this can't fail with an return code (only raise)
    _mulle__rbtree_insert_node_after_node( rb__tree,
                                           new_rbnode,
                                           rbnode);
-   _mulle_rbtree_walk_dirty( (struct mulle_rbtree *) tree);
+   _mulle_rbtree_walk_dirty( &tree->rbtree);
 #ifdef DEBUG_HARDCORE
-   assert( ! mulle_vm_tree_validate( (struct mulle_rbtree *) tree));
+   assert( ! mulle_vm_tree_validate( tree));
 #endif
    return( new_node);
 }
@@ -375,7 +375,7 @@ int   _mulle_vm_tree_remove_node( struct mulle_vm_tree *tree,
                                   struct mulle_vm_node *node)
 {
    struct mulle_rbnode   *rbnode;
-   struct mulle_rbtree   *rb_tree = (struct mulle_rbtree *) tree;
+   struct mulle_rbtree   *rb_tree = &tree->rbtree;
 
    rbnode = _mulle_vm_node_get_rbnode( node);
    _mulle_rbtree_remove_node( rb_tree, rbnode);
@@ -425,7 +425,7 @@ struct mulle_vm_tree_search_result
    _mulle_vm_tree_search_trace( struct mulle_vm_tree *tree,
                                 uintptr_t position)
 {
-   struct mulle__rbtree                 *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle__rbtree                 *rb__tree = &tree->rbtree.base;
    struct mulle_rbnode                  *nil;
    struct mulle_rbnode                  *rbnode;
    struct mulle_rbnode                  *root;
@@ -518,7 +518,7 @@ struct mulle_vm_tree_search_result
    _mulle_vm_tree_search( struct mulle_vm_tree *tree,
                           uintptr_t position)
 {
-   struct mulle__rbtree                 *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle__rbtree                 *rb__tree = &tree->rbtree.base;
    struct mulle_rbnode                  *nil;
    struct mulle_rbnode                  *rbnode;
    struct mulle_rbnode                  *root;
@@ -603,7 +603,7 @@ void   mulle_vm_tree_print( struct mulle_vm_tree *tree)
    char                            *s;
    struct mulle_allocator          *allocator;
 
-   mulle_rbtree_for( (struct mulle_rbtree *) tree, rbnode)
+   mulle_rbtree_for( &tree->rbtree, rbnode)
    {
       allocator = &mulle_allocator_stdlib;  // keep in loop
       s         = mulle_vm_node_callback.describe( &mulle_vm_node_callback, rbnode, &allocator);
@@ -616,7 +616,7 @@ void   mulle_vm_tree_print( struct mulle_vm_tree *tree)
 
 #if 0
 // not "API"
-static struct mulle_rbnode *   _mulle_vm_tree_attach( struct mulle_rbtree *tree,
+static struct mulle_rbnode *   _mulle_vm_tree_attach( struct mulle_vm_tree *tree,
                                                       struct mulle_vm_page *page,
                                                       struct mulle_rbnode *parent,
                                                       int direction)
@@ -624,7 +624,7 @@ static struct mulle_rbnode *   _mulle_vm_tree_attach( struct mulle_rbtree *tree,
    struct mulle_vm_node   extra;
    void                   *value;
    struct mulle_rbnode    *node;
-   struct mulle__rbtree   *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle__rbtree   *rb__tree = &tree->rbtree.base;
 
    extra.page   = page;
    extra.total  = 0;  // Will be calculated by dirty callback
@@ -633,7 +633,7 @@ static struct mulle_rbnode *   _mulle_vm_tree_attach( struct mulle_rbtree *tree,
    // afterwards
    value = mulle_vm_node_callback.retain( &mulle_vm_node_callback,
                                           &extra,
-                                          _mulle_rbtree_get_allocator( tree));
+                                          _mulle_rbtree_get_allocator( &tree->rbtree));
    node  = _mulle__rbtree_new_node( rb__tree, value);
 
    // Use the library's attach function
@@ -648,11 +648,11 @@ static struct mulle_rbnode *   _mulle_vm_tree_attach( struct mulle_rbtree *tree,
 }
 
 
-int   _mulle_vm_tree_insert( struct mulle_rbtree *tree,
+int   _mulle_vm_tree_insert( struct mulle_vm_tree *tree,
                              struct mulle_vm_page *page,
                              uintptr_t position)
 {
-   struct mulle__rbtree        *rb__tree = (struct mulle__rbtree *) tree;
+   struct mulle__rbtree        *rb__tree = &tree->rbtree.base;
    struct mulle_allocator      *allocator;
    struct mulle_vm_node        *info;
    struct mulle_rbnode         *node;
@@ -663,7 +663,7 @@ int   _mulle_vm_tree_insert( struct mulle_rbtree *tree,
    size_t                      total;
 
    nil       = _mulle__rbtree_get_nil_node(rb__tree);
-   allocator = _mulle_rbtree_get_allocator(tree);
+   allocator = _mulle_rbtree_get_allocator( &tree->rbtree);
 
    // Find the node containing the position
    result = _mulle_vm_tree_search( tree, position);
@@ -685,7 +685,7 @@ int   _mulle_vm_tree_insert( struct mulle_rbtree *tree,
       // insert ahead ez
       (void) _mulle_vm_tree_attach( tree, text, result.node, -1);
 
-      _mulle_rbtree_walk_dirty( tree);
+      _mulle_rbtree_walk_dirty( &tree->rbtree);
 #ifdef DEBUG_HARDCORE
       assert( ! mulle_vm_tree_validate( tree));
 #endif
@@ -707,7 +707,7 @@ int   _mulle_vm_tree_insert( struct mulle_rbtree *tree,
    assert( node);
 
    // walk after first attachment, to get proper numbers
-   _mulle_rbtree_walk_dirty( tree);
+   _mulle_rbtree_walk_dirty( &tree->rbtree);
 
 #ifdef DEBUG_HARDCORE
    assert( ! mulle_vm_tree_validate( tree));
@@ -728,7 +728,7 @@ int   _mulle_vm_tree_insert( struct mulle_rbtree *tree,
    if( ! node)
       return( "failed to hack original node");
    // Validate after second attachment
-   _mulle_rbtree_walk_dirty(tree);
+   _mulle_rbtree_walk_dirty( &tree->rbtree);
 
 #ifdef DEBUG_HARDCORE
    assert( ! mulle_vm_tree_validate( tree));
@@ -740,7 +740,7 @@ int   _mulle_vm_tree_insert( struct mulle_rbtree *tree,
    // free pages we don't need now
    _mulle__rbtree_mark_node_as_dirty( rb__tree, result.node);
 
-   _mulle_rbtree_walk_dirty( tree);
+   _mulle_rbtree_walk_dirty( &tree->rbtree);
 #ifdef DEBUG_HARDCORE
    assert( ! mulle_vm_tree_validate( tree));
 #endif
