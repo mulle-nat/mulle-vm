@@ -59,7 +59,7 @@ The library is part of the `mulle-core` family. Its direct dependencies are
 - **Freed page cache.** Freed single OS pages are cached for reuse
   (`mulle_vm_set_ospage_cachesize`, default 16 pages) to avoid repeated
   mmap/munmap.
-- **Versioning.** `MULLE__VM_VERSION` (currently 0.7.56) with inline accessor
+- **Versioning.** `MULLE__VM_VERSION` (currently 0.7.57) with inline accessor
   functions.
 
 ## 3. Core API & Data Structures
@@ -82,7 +82,7 @@ separately when used.
 #### Version and defaults
 
 ```c
-#define MULLE__VM_VERSION  ((0UL << 20) | (7 << 8) | 56)
+#define MULLE__VM_VERSION  ((0UL << 20) | (7 << 8) | 57)
 ```
 
 ```c
@@ -587,7 +587,7 @@ struct mulle_vm_node *   mulle_vm_tree_add_page( struct mulle_vm_tree *tree,
                                                 struct mulle_vm_page *page);
 
 MULLE__VM_GLOBAL
-struct mulle_vm_node *   _mulle_vm_tree_insert_page_after_node( struct mulle_rbtree *tree,
+struct mulle_vm_node *   _mulle_vm_tree_insert_page_after_node( struct mulle_vm_tree *tree,
                                                                 struct mulle_vm_page *page,
                                                                 struct mulle_vm_node *node);
 static inline struct mulle_vm_node *
@@ -596,7 +596,7 @@ static inline struct mulle_vm_node *
                                           struct mulle_vm_node *node);
 MULLE__VM_GLOBAL
 struct mulle_vm_node *
-   _mulle_vm_tree_insert_page_before_node( struct mulle_rbtree *tree,
+   _mulle_vm_tree_insert_page_before_node( struct mulle_vm_tree *tree,
                                             struct mulle_vm_page *page,
                                             struct mulle_vm_node *node);
 static inline struct mulle_vm_node *
