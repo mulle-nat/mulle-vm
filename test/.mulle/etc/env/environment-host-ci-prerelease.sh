@@ -17,6 +17,24 @@ export MULLE__CORE_BRANCH="prerelease"
 
 
 #
+# mulle-vm nodetype: ${MULLE__VM_NODETYPE:-tar}
+#
+export MULLE__VM_NODETYPE="git"
+
+
+#
+# mulle-vm url: ${MULLE__VM_URL:-https://github.com/mulle-core/mulle-vm/archive/${MULLE_TAG}.tar.gz}
+#
+export MULLE__VM_URL="https://github.com/mulle-core/mulle-vm.git"
+
+
+#
+# mulle-vm branch: ${MULLE__VM_BRANCH}
+#
+export MULLE__VM_BRANCH="prerelease"
+
+
+#
 # mulle-iovec nodetype: ${MULLE__IOVEC_NODETYPE:-tar}
 #
 export MULLE__IOVEC_NODETYPE="git"
