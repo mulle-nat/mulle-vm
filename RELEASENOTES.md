@@ -1,6 +1,7 @@
 ### 0.7.57
 
 
+
 * Fix parameter types of ``_mulle_vm_tree_insert_page_after_node`` and ``_mulle_vm_tree_insert_page_before_node`` in the API docs from `struct `mulle_rbtree` *` to `struct `mulle_vm_tree` *`.
 * Update the documented ``MULLE__VM_VERSION`` to 0.7.57.
 
