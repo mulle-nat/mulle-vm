@@ -21,7 +21,7 @@ it into a different `struct mulle_vm` in a different thread.
 
 | Release Version                                       | Release Notes  | AI Documentation
 |-------------------------------------------------------|----------------|---------------
-| ![Mulle kybernetiK tag](https://img.shields.io/github/tag/mulle-core/mulle-vm.svg) [![Build Status](https://github.com/mulle-core/mulle-vm/workflows/CI/badge.svg)](//github.com/mulle-core/mulle-vm/actions) | [RELEASENOTES](RELEASENOTES.md) | [DeepWiki for mulle-vm](https://deepwiki.com/mulle-core/mulle-vm)
+| ![Mulle kybernetiK tag](https://img.shields.io/github/tag/mulle-core/mulle-vm.svg) ![standard: C11](pix/c11.svg) ![apis: ansi](pix/apis-ansi.svg) [![Build Status](https://github.com/mulle-core/mulle-vm/workflows/CI/badge.svg)](//github.com/mulle-core/mulle-vm/actions) | [RELEASENOTES](RELEASENOTES.md) | [DeepWiki for mulle-vm](https://deepwiki.com/mulle-core/mulle-vm)
 
 
 
