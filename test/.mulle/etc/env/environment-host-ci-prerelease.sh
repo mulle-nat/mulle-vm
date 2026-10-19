@@ -1,73 +1,19 @@
 #
-# mulle-core nodetype: ${MULLE__CORE_NODETYPE:-tar}
+# libbacktrace nodetype: ${LIBBACKTRACE_NODETYPE:-tar}
 #
-export MULLE__CORE_NODETYPE="git"
+export LIBBACKTRACE_NODETYPE="git"
 
 
 #
-# mulle-core url: ${MULLE__CORE_URL:-https://github.com/mulle-core/mulle-core/archive/${MULLE_TAG}.tar.gz}
+# libbacktrace url: ${LIBBACKTRACE_URL:-https://github.com/mulle-core/libbacktrace/archive/${MULLE_TAG}.tar.gz}
 #
-export MULLE__CORE_URL="https://github.com/mulle-core/mulle-core.git"
+export LIBBACKTRACE_URL="https://github.com/mulle-core/libbacktrace.git"
 
 
 #
-# mulle-core branch: ${MULLE__CORE_BRANCH}
+# libbacktrace branch: ${LIBBACKTRACE_BRANCH}
 #
-export MULLE__CORE_BRANCH="prerelease"
-
-
-#
-# mulle-vm nodetype: ${MULLE__VM_NODETYPE:-tar}
-#
-export MULLE__VM_NODETYPE="git"
-
-
-#
-# mulle-vm url: ${MULLE__VM_URL:-https://github.com/mulle-core/mulle-vm/archive/${MULLE_TAG}.tar.gz}
-#
-export MULLE__VM_URL="https://github.com/mulle-core/mulle-vm.git"
-
-
-#
-# mulle-vm branch: ${MULLE__VM_BRANCH}
-#
-export MULLE__VM_BRANCH="prerelease"
-
-
-#
-# mulle-iovec nodetype: ${MULLE__IOVEC_NODETYPE:-tar}
-#
-export MULLE__IOVEC_NODETYPE="git"
-
-
-#
-# mulle-iovec url: ${MULLE__IOVEC_URL:-https://github.com/mulle-core/mulle-iovec/archive/${MULLE_TAG}.tar.gz}
-#
-export MULLE__IOVEC_URL="https://github.com/mulle-core/mulle-iovec.git"
-
-
-#
-# mulle-iovec branch: ${MULLE__IOVEC_BRANCH}
-#
-export MULLE__IOVEC_BRANCH="prerelease"
-
-
-#
-# mulle-testallocator nodetype: ${MULLE__TESTALLOCATOR_NODETYPE:-tar}
-#
-export MULLE__TESTALLOCATOR_NODETYPE="git"
-
-
-#
-# mulle-testallocator url: ${MULLE__TESTALLOCATOR_URL:-https://github.com/mulle-core/mulle-testallocator/archive/${MULLE_TAG}.tar.gz}
-#
-export MULLE__TESTALLOCATOR_URL="https://github.com/mulle-core/mulle-testallocator.git"
-
-
-#
-# mulle-testallocator branch: ${MULLE__TESTALLOCATOR_BRANCH}
-#
-export MULLE__TESTALLOCATOR_BRANCH="prerelease"
+export LIBBACKTRACE_BRANCH="prerelease"
 
 
 #
@@ -89,39 +35,21 @@ export MULLE__ALLOCATOR_BRANCH="prerelease"
 
 
 #
-# mulle-dlfcn nodetype: ${MULLE__DLFCN_NODETYPE:-tar}
+# mulle-atexit nodetype: ${MULLE__ATEXIT_NODETYPE:-tar}
 #
-export MULLE__DLFCN_NODETYPE="git"
+export MULLE__ATEXIT_NODETYPE="git"
 
 
 #
-# mulle-dlfcn url: ${MULLE__DLFCN_URL:-https://github.com/mulle-core/mulle-dlfcn/archive/${MULLE_TAG}.tar.gz}
+# mulle-atexit url: ${MULLE__ATEXIT_URL:-https://github.com/mulle-core/mulle-atexit/archive/${MULLE_TAG}.tar.gz}
 #
-export MULLE__DLFCN_URL="https://github.com/mulle-core/mulle-dlfcn.git"
+export MULLE__ATEXIT_URL="https://github.com/mulle-core/mulle-atexit.git"
 
 
 #
-# mulle-dlfcn branch: ${MULLE__DLFCN_BRANCH}
+# mulle-atexit branch: ${MULLE__ATEXIT_BRANCH}
 #
-export MULLE__DLFCN_BRANCH="prerelease"
-
-
-#
-# mulle-thread nodetype: ${MULLE__THREAD_NODETYPE:-tar}
-#
-export MULLE__THREAD_NODETYPE="git"
-
-
-#
-# mulle-thread url: ${MULLE__THREAD_URL:-https://github.com/mulle-concurrent/mulle-thread/archive/${MULLE_TAG}.tar.gz}
-#
-export MULLE__THREAD_URL="https://github.com/mulle-concurrent/mulle-thread.git"
-
-
-#
-# mulle-thread branch: ${MULLE__THREAD_BRANCH}
-#
-export MULLE__THREAD_BRANCH="prerelease"
+export MULLE__ATEXIT_BRANCH="prerelease"
 
 
 #
@@ -143,21 +71,57 @@ export MULLE__ATINIT_BRANCH="prerelease"
 
 
 #
-# mulle-atexit nodetype: ${MULLE__ATEXIT_NODETYPE:-tar}
+# mulle-core nodetype: ${MULLE__CORE_NODETYPE:-tar}
 #
-export MULLE__ATEXIT_NODETYPE="git"
+export MULLE__CORE_NODETYPE="git"
 
 
 #
-# mulle-atexit url: ${MULLE__ATEXIT_URL:-https://github.com/mulle-core/mulle-atexit/archive/${MULLE_TAG}.tar.gz}
+# mulle-core url: ${MULLE__CORE_URL:-https://github.com/mulle-core/mulle-core/archive/${MULLE_TAG}.tar.gz}
 #
-export MULLE__ATEXIT_URL="https://github.com/mulle-core/mulle-atexit.git"
+export MULLE__CORE_URL="https://github.com/mulle-core/mulle-core.git"
 
 
 #
-# mulle-atexit branch: ${MULLE__ATEXIT_BRANCH}
+# mulle-core branch: ${MULLE__CORE_BRANCH}
 #
-export MULLE__ATEXIT_BRANCH="prerelease"
+export MULLE__CORE_BRANCH="prerelease"
+
+
+#
+# mulle-dlfcn nodetype: ${MULLE__DLFCN_NODETYPE:-tar}
+#
+export MULLE__DLFCN_NODETYPE="git"
+
+
+#
+# mulle-dlfcn url: ${MULLE__DLFCN_URL:-https://github.com/mulle-core/mulle-dlfcn/archive/${MULLE_TAG}.tar.gz}
+#
+export MULLE__DLFCN_URL="https://github.com/mulle-core/mulle-dlfcn.git"
+
+
+#
+# mulle-dlfcn branch: ${MULLE__DLFCN_BRANCH}
+#
+export MULLE__DLFCN_BRANCH="prerelease"
+
+
+#
+# mulle-iovec nodetype: ${MULLE__IOVEC_NODETYPE:-tar}
+#
+export MULLE__IOVEC_NODETYPE="git"
+
+
+#
+# mulle-iovec url: ${MULLE__IOVEC_URL:-https://github.com/mulle-core/mulle-iovec/archive/${MULLE_TAG}.tar.gz}
+#
+export MULLE__IOVEC_URL="https://github.com/mulle-core/mulle-iovec.git"
+
+
+#
+# mulle-iovec branch: ${MULLE__IOVEC_BRANCH}
+#
+export MULLE__IOVEC_BRANCH="prerelease"
 
 
 #
@@ -179,20 +143,56 @@ export MULLE__STACKTRACE_BRANCH="prerelease"
 
 
 #
-# libbacktrace nodetype: ${LIBBACKTRACE_NODETYPE:-tar}
+# mulle-testallocator nodetype: ${MULLE__TESTALLOCATOR_NODETYPE:-tar}
 #
-export LIBBACKTRACE_NODETYPE="git"
+export MULLE__TESTALLOCATOR_NODETYPE="git"
 
 
 #
-# libbacktrace url: ${LIBBACKTRACE_URL:-https://github.com/mulle-core/libbacktrace/archive/${MULLE_TAG}.tar.gz}
+# mulle-testallocator url: ${MULLE__TESTALLOCATOR_URL:-https://github.com/mulle-core/mulle-testallocator/archive/${MULLE_TAG}.tar.gz}
 #
-export LIBBACKTRACE_URL="https://github.com/mulle-core/libbacktrace.git"
+export MULLE__TESTALLOCATOR_URL="https://github.com/mulle-core/mulle-testallocator.git"
 
 
 #
-# libbacktrace branch: ${LIBBACKTRACE_BRANCH}
+# mulle-testallocator branch: ${MULLE__TESTALLOCATOR_BRANCH}
 #
-export LIBBACKTRACE_BRANCH="prerelease"
+export MULLE__TESTALLOCATOR_BRANCH="prerelease"
+
+
+#
+# mulle-thread nodetype: ${MULLE__THREAD_NODETYPE:-tar}
+#
+export MULLE__THREAD_NODETYPE="git"
+
+
+#
+# mulle-thread url: ${MULLE__THREAD_URL:-https://github.com/mulle-concurrent/mulle-thread/archive/${MULLE_TAG}.tar.gz}
+#
+export MULLE__THREAD_URL="https://github.com/mulle-concurrent/mulle-thread.git"
+
+
+#
+# mulle-thread branch: ${MULLE__THREAD_BRANCH}
+#
+export MULLE__THREAD_BRANCH="prerelease"
+
+
+#
+# mulle-vm nodetype: ${MULLE__VM_NODETYPE:-tar}
+#
+export MULLE__VM_NODETYPE="git"
+
+
+#
+# mulle-vm url: ${MULLE__VM_URL:-https://github.com/mulle-core/mulle-vm/archive/${MULLE_TAG}.tar.gz}
+#
+export MULLE__VM_URL="https://github.com/mulle-core/mulle-vm.git"
+
+
+#
+# mulle-vm branch: ${MULLE__VM_BRANCH}
+#
+export MULLE__VM_BRANCH="prerelease"
 
 
